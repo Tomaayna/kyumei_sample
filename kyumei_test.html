@@ -815,9 +815,13 @@ function switchMode(next){
     setActiveCurrent(current); // 変数上の整合だけ取る
     updateProgress();
   } else {
-    // 修了テストは常にイントロから
+    // 修了テストは常にイントロから。切替時に前回の解答・進捗をゼロクリア。
+    examPick  = new Array(EXAM_TOTAL).fill(null);
+    examState = new Array(EXAM_TOTAL).fill(null);
+    examGraded = false;
+    examCurrent = 0;
     showExamIntro();
-    updateProgress(); // プログレスバーを修了テスト用に
+    updateProgress(); // プログレスバーを修了テスト用にゼロクリア
   }
   window.scrollTo({top:0, behavior:'smooth'});
 }
