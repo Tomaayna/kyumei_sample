@@ -65,6 +65,8 @@ h1{font-size:24px;letter-spacing:.04em;font-weight:800}
 .cell:hover{border-color:var(--maru)}
 .cell:active{transform:scale(.97)}
 .cell.correct{background:var(--maru-bg);border-color:var(--maru)}
+.cell.answered{background:#eef1f4;border-color:#9fb0bd}
+.cell.answered .num{background:#9fb0bd;border-color:#9fb0bd;color:#fff}
 .cell.correct .num{background:var(--maru);border-color:var(--maru);color:#fff}
 .cell.wrong{background:var(--batsu-bg);border-color:var(--batsu)}
 .cell.wrong .num{background:var(--batsu);border-color:var(--batsu);color:#fff}
@@ -158,6 +160,48 @@ footer .credit{font-size:12px;color:var(--ink);font-weight:700;margin-bottom:6px
 footer .credit a{color:var(--maru);word-break:break-all}
 footer .credit-note{font-size:11px;color:var(--sub);margin-bottom:14px;line-height:1.7}
 
+/* mode switch */
+.modeswitch{
+  display:flex;gap:6px;background:var(--card);border:1.5px solid var(--line);
+  border-radius:99px;padding:5px;margin:0 auto 6px;max-width:360px;
+}
+.mode-tab{
+  flex:1;border:0;background:transparent;color:var(--sub);
+  padding:9px 8px;border-radius:99px;font-size:13.5px;font-weight:800;
+  cursor:pointer;letter-spacing:.04em;transition:background .15s,color .15s;
+}
+.mode-tab.active{background:var(--maru);color:#fff}
+.mode-tab:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+
+/* exam intro */
+.exam-notes{list-style:none;margin:0 0 4px;padding:0}
+.exam-notes li{
+  font-size:13px;color:var(--sub);line-height:1.7;padding-left:18px;position:relative;
+}
+.exam-notes li::before{content:"・";position:absolute;left:2px;color:var(--maru);font-weight:800}
+.exam-intro .toolbar{justify-content:flex-start}
+
+/* exam result */
+.exam-result .big{color:var(--maru)}
+.cert-input{text-align:left;max-width:340px;margin:0 auto}
+.cert-input label{display:block;font-size:12px;font-weight:700;color:var(--sub);margin-bottom:6px}
+.cert-input input{
+  width:100%;padding:12px 14px;border:1.5px solid var(--line);border-radius:12px;
+  font-size:16px;color:var(--ink);background:var(--paper);
+}
+.cert-input input:focus{outline:none;border-color:var(--maru)}
+.cert-note{font-size:12px;color:var(--sub);margin-top:10px;min-height:16px}
+.cert-note.err{color:var(--batsu)}
+.cert-note.ok{color:var(--maru)}
+
+/* exam pass/fail accent */
+.exam-result.pass{border-top:0}
+.exam-result .verdict-big{
+  font-size:20px;font-weight:800;margin-bottom:6px;
+}
+.exam-result.pass .verdict-big{color:var(--maru)}
+.exam-result.fail .verdict-big{color:var(--batsu)}
+
 @media(max-width:420px){
   .grid{grid-template-columns:1fr}
   .q-text{font-size:16px}
@@ -169,8 +213,13 @@ footer .credit-note{font-size:11px;color:var(--sub);margin-bottom:14px;line-heig
   <header>
     <div class="eyebrow">CPR &middot; AED</div>
     <h1>救命講習 確認テスト</h1>
-    <p class="tagline">全50問 ／ マル・バツ形式</p>
+    <p class="tagline" id="tagline">全50問 ／ マル・バツ形式</p>
   </header>
+
+  <div class="modeswitch" role="tablist" aria-label="モード切替">
+    <button class="mode-tab active" id="tabPractice" role="tab" aria-selected="true">練習モード</button>
+    <button class="mode-tab" id="tabExam" role="tab" aria-selected="false">修了テスト</button>
+  </div>
 
   <div class="progress">
     <span id="progLabel">解答済み 0 / 50</span>
@@ -178,20 +227,75 @@ footer .credit-note{font-size:11px;color:var(--sub);margin-bottom:14px;line-heig
     <span id="progScore">正解 0</span>
   </div>
 
-  <div class="selector-head">
-    <h2>問題を選ぶ</h2>
-    <span class="hint">カテゴリ別・タップで解答</span>
-  </div>
-  <div id="groups"></div>
+  <!-- ===== 練習モードUI ===== -->
+  <div id="practiceUI">
+    <div class="selector-head">
+      <h2>問題を選ぶ</h2>
+      <span class="hint">カテゴリ別・タップで解答</span>
+    </div>
+    <div id="groups"></div>
 
-  <div class="toolbar">
-    <button class="btn primary" id="btnNext">未解答の問題へ</button>
-    <button class="btn" id="btnReset">履歴をリセット</button>
+    <div class="toolbar">
+      <button class="btn primary" id="btnNext">未解答の問題へ</button>
+      <button class="btn" id="btnReset">履歴をリセット</button>
+    </div>
+
+    <div class="score" id="scorePanel">
+      <div class="big"><span id="scoreNum">0</span><small>/50</small></div>
+      <div class="sub" id="scoreMsg"></div>
+    </div>
   </div>
 
-  <div class="score" id="scorePanel">
-    <div class="big"><span id="scoreNum">0</span><small>/50</small></div>
-    <div class="sub" id="scoreMsg"></div>
+  <!-- ===== 修了テストモードUI ===== -->
+  <div id="examUI" style="display:none">
+    <!-- 開始前の説明 -->
+    <div class="exam-intro card" id="examIntro">
+      <div class="q-meta"><span class="q-num">修了テスト</span></div>
+      <p class="q-text" style="margin-bottom:16px">
+        全50問からランダムに<b>20問</b>を出題します。<b>17問以上</b>正解で修了となり、
+        氏名を入力して修了証（PDF）を発行できます。
+      </p>
+      <ul class="exam-notes">
+        <li>出題順・問題内容は開始のたびに変わります。</li>
+        <li>各問は解答すると確定し、後から変更できません。</li>
+        <li>参考動画は本テスト中も解答後に表示されます。</li>
+        <li>解答状況はページを閉じると失われます。</li>
+      </ul>
+      <div class="toolbar" style="margin-top:6px">
+        <button class="btn primary" id="btnExamStart">修了テストを開始する</button>
+      </div>
+    </div>
+
+    <!-- 進行中グリッド -->
+    <div class="exam-run" id="examRun" style="display:none">
+      <div class="selector-head">
+        <h2>修了テスト（全20問）</h2>
+        <span class="hint">タップで解答</span>
+      </div>
+      <div class="grid" id="examGrid"></div>
+      <div class="toolbar">
+        <button class="btn primary" id="btnExamNext">未解答の問題へ</button>
+        <button class="btn" id="btnExamGrade">採点する</button>
+        <button class="btn" id="btnExamRetry">やり直す</button>
+      </div>
+    </div>
+
+    <!-- 採点結果 -->
+    <div class="score exam-result" id="examResult">
+      <div class="big"><span id="examScoreNum">0</span><small>/20</small></div>
+      <div class="sub" id="examScoreMsg"></div>
+      <div id="examPassBox" style="display:none;margin-top:16px">
+        <div class="cert-input">
+          <label for="certName">氏名（修了証に印字されます）</label>
+          <input type="text" id="certName" maxlength="20" placeholder="例：山田 太郎" autocomplete="name">
+        </div>
+        <button class="btn primary" id="btnIssueCert" style="margin-top:12px">修了証（PDF）を発行する</button>
+        <p class="cert-note" id="certStatus"></p>
+      </div>
+      <div id="examFailBox" style="display:none;margin-top:14px">
+        <button class="btn primary" id="btnExamRetry2">もう一度挑戦する</button>
+      </div>
+    </div>
   </div>
 
   <div class="card" id="card" style="display:none">
@@ -269,10 +373,10 @@ const QUESTIONS = [{"q": "心臓や呼吸が止まってしまった状態のこ
 , {"q": "誰かが目の前で倒れた場合、119番通報より先に心肺蘇生を試みる。", "valid": 0, "c": "倒れた人の状態を確認して呼びかけに反応がなければ、まず119番通報をします。", "cat": "応急手当の手順", "label": "119番通報の優先", "video": "https://youtu.be/KQuNbUHR8S4"}
 , {"q": "119番通報したときは、通信指令員の質問に落ち着いて答え、指示に従って行動する。", "valid": 1, "c": "通信指令員の質問に落ち着いて答えた後、通信指令員から心肺蘇生の方法等の指示があるので、その指示に従って行動しましょう。電話のスピーカーモードも効果的です。", "cat": "応急手当の手順", "label": "119番通報の対応", "video": "https://youtu.be/Ap0RLqrEJqY"}
 , {"q": "救命の連鎖とは、「心停止の予防」、「早期認識と通報」、「一次救命処置（心肺蘇生とＡＥＤ）」、「二次救命処置と心拍再開後の集中治療」が素早くつながると、人命の助かる可能性が高くなることを示している。", "valid": 1, "c": "「心停止の予防」、「早期認識と通報」、「一次救命処置（心肺蘇生とＡＥＤ）」、「二次救命処置と心拍再開後の集中治療」を、バイスタンダー、救急隊員、医師がそれぞれの立場で素早く行えば、人命の助かる可能性が高くなります。", "cat": "救命の基礎知識", "label": "救命の連鎖", "video": "https://youtu.be/ModAtmNkxn8"}
-, {"q": "「心停止の予防」とは、心停止や呼吸停止になる前に、その初期症状に気づいて救急車を要請することである。", "valid": 1, "c": "「心停止の予防」とは、心停止に陥りやすい急性心筋梗塞や脳卒中などの初期症状に気づき、救急車を要請することです。", "cat": "救命の基礎知識", "label": "心停止の予防", "video": "https://youtu.be/ModAtmNkxn8&t=19s"}
+, {"q": "「心停止の予防」とは、心停止や呼吸停止になる前に、その初期症状に気づいて救急車を要請することである。", "valid": 1, "c": "「心停止の予防」とは、心停止に陥りやすい急性心筋梗塞や脳卒中などの初期症状に気づき、救急車を要請することです。", "cat": "救命の基礎知識", "label": "心停止の予防", "video": "https://youtu.be/ModAtmNkxn8"}
 , {"q": "救急隊が到着するまでは、傷病者に触れずに様子をみる。", "valid": 0, "c": "救急車が到着するまでに応急手当を行うと、救命の可能性が高くなります。目の前で倒れた人の心臓や呼吸が止まっている場合は、救急車の到着を待たず、心肺蘇生を開始します。", "cat": "応急手当の手順", "label": "救急隊到着前の対応", "video": "https://youtu.be/3DSDwQFfq4E"}
 , {"q": "成人が突然死する原因に、心筋梗塞や脳卒中が挙げられる。", "valid": 1, "c": "成人が突然死する原因には、心筋梗塞や脳卒中などがあり、これらの初期症状がみられたら、直ちに救急車を要請しましょう。", "cat": "救命の基礎知識", "label": "成人の突然死の原因", "video": "https://youtu.be/AEkkBlD4SeA"}
-, {"q": "小児の突然死の原因の多くは「不慮の事故」であり、安全に注意し、未然に事故を防ぐことが大切である。", "valid": 1, "c": "自動車に乗せるときはチャイルドシートを使用し、自転車に乗るときはヘルメットを着用させるなど、未然に事故を防ぎましょう。", "cat": "救命の基礎知識", "label": "小児の突然死の原因", "video": "https://youtu.be/lzgjBj2Du7c&t=25s"}
+, {"q": "小児の突然死の原因の多くは「不慮の事故」であり、安全に注意し、未然に事故を防ぐことが大切である。", "valid": 1, "c": "自動車に乗せるときはチャイルドシートを使用し、自転車に乗るときはヘルメットを着用させるなど、未然に事故を防ぎましょう。", "cat": "救命の基礎知識", "label": "小児の突然死の原因", "video": "https://youtu.be/lzgjBj2Du7c"}
 , {"q": "ＡＥＤによる電気ショックは、一次救命処置に含まれない。", "valid": 0, "c": "一次救命処置は、「心肺蘇生」の他に「ＡＥＤによる電気ショック」や「気道異物の除去」も含まれます。", "cat": "救命の基礎知識", "label": "一次救命処置の範囲", "video": "https://youtu.be/MxzeZ1gjQU8"}
 , {"q": "「ＡＥＤ」は電気ショックを与えて、心臓のふるえ（細動）を取り除く機械である。", "valid": 1, "c": "ＡＥＤは電気ショックを与えて、心臓のふるえを取り除きます。講習を受けていなくても使用できます。", "cat": "AEDの使い方", "label": "AEDの役割", "video": "https://youtu.be/MxzeZ1gjQU8&t=34s"}
 , {"q": "「気道異物の除去」は、口の中やノド等に詰まっている異物を取り除くことである。", "valid": 1, "c": "口の中やノド等に詰まっている異物を取り除く処置を「気道異物の除去」と言い、その処置には「背部叩打法」や「腹部突き上げ法」などがあります。", "cat": "気道異物・窒息", "label": "気道異物の除去とは", "video": "https://youtu.be/MxzeZ1gjQU8&t=84s"}
@@ -319,6 +423,21 @@ const N = QUESTIONS.length;
 let state = new Array(N).fill(null);
 let pick  = new Array(N).fill(null);
 let current = 0;
+
+// ===== モード管理 =====
+// 'practice' | 'exam'
+let mode = 'practice';
+
+// 修了テスト設定
+const EXAM_TOTAL = 20;   // 出題数
+const EXAM_PASS  = 17;   // 合格ライン
+
+// 修了テスト用の状態。examSet は QUESTIONS のインデックス配列（長さEXAM_TOTAL）
+let examSet   = [];
+let examState = [];      // null | true | false
+let examPick  = [];      // 選んだ答え(bool)
+let examCurrent = 0;
+let examGraded = false;
 
 const $ = id => document.getElementById(id);
 const groupsEl = $('groups');
@@ -370,6 +489,19 @@ function refreshGrid(){
 }
 
 function updateProgress(){
+  if(mode === 'exam'){
+    const total = EXAM_TOTAL;
+    const done = examPick.filter(p => p !== null && p !== undefined).length;
+    $('progLabel').textContent = '解答済み ' + done + ' / ' + total;
+    if(examGraded){
+      const correct = examState.filter(s => s === true).length;
+      $('progScore').textContent = '正解 ' + correct;
+    } else {
+      $('progScore').textContent = '';
+    }
+    $('progFill').style.width = (total ? done / total * 100 : 0) + '%';
+    return;
+  }
   const done = state.filter(s => s !== null).length;
   const correct = state.filter(s => s === true).length;
   $('progLabel').textContent = '解答済み ' + done + ' / ' + N;
@@ -392,11 +524,28 @@ function updateProgress(){
   }
 }
 
-function openQuestion(i){
-  current = i;
-  const q = QUESTIONS[i];
+// ===== モード共通ヘルパ =====
+// アクティブなモードの「表示位置(pos)」→「実問題インデックス(QUESTIONS上)」の解決
+function realIndexOf(pos){
+  return mode === 'exam' ? examSet[pos] : pos;
+}
+function activeState(){ return mode === 'exam' ? examState : state; }
+function activePick(){  return mode === 'exam' ? examPick  : pick;  }
+function activeTotal(){ return mode === 'exam' ? EXAM_TOTAL : N; }
+function activeCurrent(){ return mode === 'exam' ? examCurrent : current; }
+function setActiveCurrent(pos){ if(mode === 'exam') examCurrent = pos; else current = pos; }
+
+// pos: アクティブモード内の表示インデックス（練習=問題番号, 修了=examSet内の位置）
+function openQuestion(pos){
+  setActiveCurrent(pos);
+  const ri = realIndexOf(pos);
+  const q = QUESTIONS[ri];
   $('card').style.display = 'block';
-  $('qNum').textContent = '第' + (i+1) + '問';
+  if(mode === 'exam'){
+    $('qNum').textContent = '第' + (pos+1) + '問 / ' + EXAM_TOTAL;
+  } else {
+    $('qNum').textContent = '第' + (ri+1) + '問';
+  }
   $('qCat').textContent = q.cat;
   $('qText').textContent = q.q;
 
@@ -406,11 +555,26 @@ function openQuestion(i){
   maru.onclick = () => answer(true);
   batsu.onclick = () => answer(false);
 
-  $('btnPrev').disabled = (i === 0);
-  $('btnFwd').disabled = (i === N - 1);
+  $('btnPrev').disabled = (pos === 0);
+  $('btnFwd').disabled = (pos === activeTotal() - 1);
 
-  if(state[i] !== null){
-    showResult(i);
+  if(mode === 'exam'){
+    // 修了テスト中は正誤・解説・動画を表示しない。選択済みならロック＆ハイライトのみ復元。
+    $('result').classList.remove('show');
+    destroyPlayer();
+    $('videoFrameWrap').innerHTML = '';
+    const picked = examPick[pos];
+    if(picked !== null && picked !== undefined){
+      maru.disabled = true; batsu.disabled = true;
+      maru.classList.toggle('picked', picked === true);
+      batsu.classList.toggle('picked', picked === false);
+    }
+    $('card').scrollIntoView({behavior:'smooth', block:'start'});
+    return;
+  }
+
+  if(activeState()[pos] !== null){
+    showResult(pos);
   } else {
     $('result').classList.remove('show');
     destroyPlayer();
@@ -420,26 +584,44 @@ function openQuestion(i){
 }
 
 function answer(choice){
-  const i = current;
-  if(state[i] !== null) return; // already answered, locked
-  const correctAnswer = QUESTIONS[i].valid === 1; // true => マル正解
-  pick[i] = choice;
-  state[i] = (choice === correctAnswer);
-  showResult(i);
+  const pos = activeCurrent();
+
+  if(mode === 'exam'){
+    // 修了テスト中は正誤を出さず、選択のみ記録（採点時に集計）
+    examPick[pos] = choice;
+    // 選んだ方をハイライトし、両ボタンをロック
+    const maru = $('ansMaru'), batsu = $('ansBatsu');
+    maru.disabled = true; batsu.disabled = true;
+    maru.classList.toggle('picked', choice === true);
+    batsu.classList.toggle('picked', choice === false);
+    refreshExamGrid();
+    return;
+  }
+
+  const st = activeState(), pk = activePick();
+  if(st[pos] !== null) return; // already answered, locked
+  const ri = realIndexOf(pos);
+  const correctAnswer = QUESTIONS[ri].valid === 1; // true => マル正解
+  pk[pos] = choice;
+  st[pos] = (choice === correctAnswer);
+  showResult(pos);
   refreshGrid();
   updateProgress();
 }
 
-function showResult(i){
-  const q = QUESTIONS[i];
+// pos: アクティブモード内の表示インデックス
+function showResult(pos){
+  const ri = realIndexOf(pos);
+  const q = QUESTIONS[ri];
+  const st = activeState(), pk = activePick();
   const correctAnswer = q.valid === 1;
   const maru = $('ansMaru'), batsu = $('ansBatsu');
   maru.disabled = true; batsu.disabled = true;
-  maru.classList.toggle('picked', pick[i] === true);
-  batsu.classList.toggle('picked', pick[i] === false);
+  maru.classList.toggle('picked', pk[pos] === true);
+  batsu.classList.toggle('picked', pk[pos] === false);
 
   const v = $('verdict');
-  const isOK = state[i] === true;
+  const isOK = st[pos] === true;
   v.className = 'verdict ' + (isOK ? 'ok' : 'ng');
   v.querySelector('.badge').textContent = isOK ? '○' : '×';
   v.querySelector('.vtext').textContent = isOK ? '正解' : '不正解';
@@ -564,8 +746,8 @@ function mountVideo(wrap, vid, start){
   wrap.onkeydown = (e) => { if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); play(); } };
 }
 
-$('btnPrev').onclick = () => { if(current > 0) openQuestion(current - 1); };
-$('btnFwd').onclick  = () => { if(current < N - 1) openQuestion(current + 1); };
+$('btnPrev').onclick = () => { const p = activeCurrent(); if(p > 0) openQuestion(p - 1); };
+$('btnFwd').onclick  = () => { const p = activeCurrent(); if(p < activeTotal() - 1) openQuestion(p + 1); };
 
 $('btnNext').onclick = () => {
   let idx = state.findIndex(s => s === null);
@@ -583,6 +765,334 @@ $('btnReset').onclick = () => {
   $('scorePanel').classList.remove('show');
   window.scrollTo({top:0, behavior:'smooth'});
 };
+
+/* =========================================================
+   修了テストモード
+   ========================================================= */
+
+// --- 端末固有ID（localStorageに保存して再利用） ---
+const DEVICE_ID_KEY = 'kyumei_device_id';
+function getDeviceId(){
+  let id = null;
+  try { id = localStorage.getItem(DEVICE_ID_KEY); } catch(e){}
+  if(!id){
+    id = genDeviceId();
+    try { localStorage.setItem(DEVICE_ID_KEY, id); } catch(e){}
+  }
+  return id;
+}
+function genDeviceId(){
+  // KMEI-XXXXXXXX（16進8桁）。crypto があれば使用、無ければ乱数フォールバック。
+  let hex = '';
+  if(window.crypto && crypto.getRandomValues){
+    const a = new Uint8Array(4);
+    crypto.getRandomValues(a);
+    hex = Array.from(a).map(b => b.toString(16).padStart(2,'0')).join('');
+  } else {
+    hex = Math.floor(Math.random()*0xffffffff).toString(16).padStart(8,'0');
+  }
+  return 'KMEI-' + hex.toUpperCase();
+}
+
+// --- モード切替 ---
+function switchMode(next){
+  if(mode === next) return;
+  mode = next;
+  // カード・動画を閉じる
+  destroyPlayer();
+  $('videoFrameWrap').innerHTML = '';
+  $('card').style.display = 'none';
+  $('result').classList.remove('show');
+
+  const practice = next === 'practice';
+  $('practiceUI').style.display = practice ? 'block' : 'none';
+  $('examUI').style.display     = practice ? 'none'  : 'block';
+  $('tabPractice').classList.toggle('active', practice);
+  $('tabExam').classList.toggle('active', !practice);
+  $('tabPractice').setAttribute('aria-selected', practice ? 'true':'false');
+  $('tabExam').setAttribute('aria-selected', practice ? 'false':'true');
+  $('tagline').textContent = practice
+    ? '全50問 ／ マル・バツ形式'
+    : '20問出題 ／ ' + EXAM_PASS + '問以上で修了';
+
+  if(practice){
+    setActiveCurrent(current); // 変数上の整合だけ取る
+    updateProgress();
+  } else {
+    // 修了テストは常にイントロから
+    showExamIntro();
+    updateProgress(); // プログレスバーを修了テスト用に
+  }
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+$('tabPractice').onclick = () => switchMode('practice');
+$('tabExam').onclick = () => switchMode('exam');
+
+// --- 修了テストの画面状態 ---
+function showExamIntro(){
+  $('examIntro').style.display = 'block';
+  $('examRun').style.display = 'none';
+  $('examResult').classList.remove('show');
+  $('card').style.display = 'none';
+}
+
+// Fisher–Yates で 0..N-1 をシャッフルし、先頭 EXAM_TOTAL 件を採用
+function pickExamSet(){
+  const arr = Array.from({length:N}, (_,i)=>i);
+  for(let i=arr.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]] = [arr[j],arr[i]];
+  }
+  return arr.slice(0, EXAM_TOTAL);
+}
+
+const examCellByPos = new Array(EXAM_TOTAL);
+function startExam(){
+  examSet = pickExamSet();
+  examState = new Array(EXAM_TOTAL).fill(null);
+  examPick  = new Array(EXAM_TOTAL).fill(null);
+  examCurrent = 0;
+  examGraded = false;
+
+  buildExamGrid();
+  $('examIntro').style.display = 'none';
+  $('examRun').style.display = 'block';
+  $('examResult').classList.remove('show');
+  $('card').style.display = 'none';
+  updateProgress();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function buildExamGrid(){
+  const grid = $('examGrid');
+  grid.innerHTML = '';
+  examSet.forEach((ri, pos) => {
+    const b = document.createElement('button');
+    b.className = 'cell';
+    b.setAttribute('aria-label', '第' + (pos+1) + '問');
+    b.innerHTML =
+      '<span class="num">' + (pos+1) + '</span>' +
+      '<span class="lbl">' + QUESTIONS[ri].label + '</span>';
+    b.onclick = () => openQuestion(pos);
+    grid.appendChild(b);
+    examCellByPos[pos] = b;
+  });
+}
+
+function refreshExamGrid(){
+  examCellByPos.forEach((c, pos) => {
+    if(!c) return;
+    c.classList.remove('correct','wrong','answered');
+    if(examGraded){
+      // 採点後：正誤で色分け
+      if(examState[pos] === true) c.classList.add('correct');
+      else if(examState[pos] === false) c.classList.add('wrong');
+    } else {
+      // 採点前：解答済みかどうかのみ（正誤は伏せる）
+      if(examPick[pos] !== null && examPick[pos] !== undefined) c.classList.add('answered');
+    }
+  });
+  updateProgress();
+}
+
+function gradeExam(){
+  const answered = examPick.filter(p => p !== null && p !== undefined).length;
+  if(answered < EXAM_TOTAL){
+    const rest = EXAM_TOTAL - answered;
+    if(!confirm('未解答が ' + rest + ' 問あります。未解答は不正解として採点します。よろしいですか？')) return;
+  }
+
+  // ここで初めて正誤を確定
+  for(let pos=0; pos<EXAM_TOTAL; pos++){
+    const p = examPick[pos];
+    if(p === null || p === undefined){
+      examState[pos] = false; // 未解答は不正解扱い
+    } else {
+      const ri = examSet[pos];
+      const correctAnswer = QUESTIONS[ri].valid === 1;
+      examState[pos] = (p === correctAnswer);
+    }
+  }
+
+  examGraded = true;
+  const correct = examState.filter(s => s === true).length;
+  const passed = correct >= EXAM_PASS;
+
+  refreshExamGrid(); // 正誤色に更新
+
+  const panel = $('examResult');
+  panel.classList.add('show');
+  panel.classList.toggle('pass', passed);
+  panel.classList.toggle('fail', !passed);
+  $('examScoreNum').textContent = correct;
+
+  let msg = '';
+  const verdict = passed
+    ? '<div class="verdict-big">✓ 合格（修了）</div>'
+    : '<div class="verdict-big">× 不合格</div>';
+  if(passed){
+    msg = '正解 ' + correct + ' / ' + EXAM_TOTAL + '（合格ライン ' + EXAM_PASS + '）。修了おめでとうございます。';
+  } else {
+    msg = '正解 ' + correct + ' / ' + EXAM_TOTAL + '。合格ラインは ' + EXAM_PASS + ' 問です。復習して再挑戦しましょう。';
+  }
+  $('examScoreMsg').innerHTML = verdict + msg;
+
+  $('examPassBox').style.display = passed ? 'block' : 'none';
+  $('examFailBox').style.display = passed ? 'none' : 'block';
+  $('certStatus').textContent = '';
+  $('certStatus').className = 'cert-note';
+
+  // カードは閉じて結果に集中
+  $('card').style.display = 'none';
+  destroyPlayer();
+  $('videoFrameWrap').innerHTML = '';
+  panel.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+$('btnExamStart').onclick = startExam;
+$('btnExamRetry').onclick  = () => { if(confirm('現在の解答を破棄して最初からやり直しますか？')) showExamIntro(); };
+$('btnExamRetry2').onclick = startExam;
+$('btnExamGrade').onclick  = gradeExam;
+$('btnExamNext').onclick = () => {
+  let pos = examPick.findIndex(p => p === null || p === undefined);
+  if(pos === -1){ gradeExam(); return; } // 全問解答済みなら採点へ
+  openQuestion(pos);
+};
+
+/* =========================================================
+   修了証PDF発行（jsPDF + 日本語フォント埋め込み）
+   ========================================================= */
+const PDF_LIB_URL  = 'https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js';
+const FONT_REG_URL = 'https://unpkg.com/@expo-google-fonts/noto-sans-jp@0.4.3/400Regular/NotoSansJP_400Regular.ttf';
+const FONT_BLD_URL = 'https://unpkg.com/@expo-google-fonts/noto-sans-jp@0.4.3/700Bold/NotoSansJP_700Bold.ttf';
+
+let _jspdfLoading = null;
+function loadScript(src){
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = src; s.onload = resolve; s.onerror = () => reject(new Error('script load failed: '+src));
+    document.head.appendChild(s);
+  });
+}
+function loadJsPDF(){
+  if(window.jspdf && window.jspdf.jsPDF) return Promise.resolve();
+  if(!_jspdfLoading) _jspdfLoading = loadScript(PDF_LIB_URL);
+  return _jspdfLoading;
+}
+// フォントは一度取得したらbase64をキャッシュ
+const _fontCache = {};
+async function fetchFontBase64(url){
+  if(_fontCache[url]) return _fontCache[url];
+  const res = await fetch(url);
+  if(!res.ok) throw new Error('font fetch failed: ' + res.status);
+  const buf = await res.arrayBuffer();
+  let bin = '';
+  const bytes = new Uint8Array(buf);
+  const chunk = 0x8000;
+  for(let i=0;i<bytes.length;i+=chunk){
+    bin += String.fromCharCode.apply(null, bytes.subarray(i, i+chunk));
+  }
+  const b64 = btoa(bin);
+  _fontCache[url] = b64;
+  return b64;
+}
+
+function todayStrJP(){
+  const d = new Date();
+  return d.getFullYear() + '年' + (d.getMonth()+1) + '月' + d.getDate() + '日';
+}
+
+async function issueCertificate(){
+  const nameRaw = $('certName').value.trim();
+  const status = $('certStatus');
+  if(!nameRaw){
+    status.textContent = '氏名を入力してください。';
+    status.className = 'cert-note err';
+    $('certName').focus();
+    return;
+  }
+
+  const btn = $('btnIssueCert');
+  btn.disabled = true;
+  status.className = 'cert-note';
+  status.textContent = '修了証を生成しています…（初回はフォント取得に数秒かかります）';
+
+  try{
+    await loadJsPDF();
+    const [reg, bld] = await Promise.all([
+      fetchFontBase64(FONT_REG_URL),
+      fetchFontBase64(FONT_BLD_URL)
+    ]);
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation:'landscape', unit:'mm', format:'a4' });
+    doc.addFileToVFS('NotoSansJP-Regular.ttf', reg);
+    doc.addFont('NotoSansJP-Regular.ttf', 'NotoJP', 'normal');
+    doc.addFileToVFS('NotoSansJP-Bold.ttf', bld);
+    doc.addFont('NotoSansJP-Bold.ttf', 'NotoJP', 'bold');
+
+    const W = 297, H = 210, cx = W/2;
+    const deviceId = getDeviceId();
+    const dateStr = todayStrJP();
+
+    // 背景・枠
+    doc.setFillColor(245, 242, 234); doc.rect(0,0,W,H,'F');           // paper
+    doc.setDrawColor(47,125,91); doc.setLineWidth(1.4);
+    doc.rect(12,12,W-24,H-24);                                        // 外枠
+    doc.setDrawColor(184,137,43); doc.setLineWidth(0.5);
+    doc.rect(16,16,W-32,H-32);                                        // 金の内枠
+
+    // 見出し
+    doc.setFont('NotoJP','bold');
+    doc.setTextColor(28,42,51);
+    doc.setFontSize(40);
+    doc.text('修 了 証', cx, 52, {align:'center'});
+
+    doc.setDrawColor(193,74,61); doc.setLineWidth(0.8);
+    doc.line(cx-30, 60, cx+30, 60);
+
+    // 氏名
+    doc.setFont('NotoJP','normal');
+    doc.setFontSize(14);
+    doc.setTextColor(107,118,128);
+    doc.text('氏 名', cx, 84, {align:'center'});
+    doc.setFont('NotoJP','bold');
+    doc.setFontSize(26);
+    doc.setTextColor(28,42,51);
+    doc.text(nameRaw + '　殿', cx, 98, {align:'center'});
+
+    // 本文
+    doc.setFont('NotoJP','normal');
+    doc.setFontSize(14);
+    doc.setTextColor(28,42,51);
+    doc.text('あなたは救命講習 確認テスト（修了テスト）に合格し', cx, 122, {align:'center'});
+    doc.text('所定の内容を修了したことを証します。', cx, 132, {align:'center'});
+
+    // ID・合格日
+    doc.setFontSize(12);
+    doc.setTextColor(107,118,128);
+    doc.text('ID： ' + deviceId, cx, 156, {align:'center'});
+    doc.text('合格日： ' + dateStr, cx, 166, {align:'center'});
+
+    // フッター
+    doc.setFontSize(9);
+    doc.setTextColor(150,150,150);
+    doc.text('救命講習 確認テスト（学習用）', cx, H-22, {align:'center'});
+
+    const safeName = nameRaw.replace(/[\\\/:*?"<>|\s]/g, '_');
+    doc.save('修了証_' + safeName + '.pdf');
+
+    status.className = 'cert-note ok';
+    status.textContent = '修了証を発行しました。ダウンロードをご確認ください。';
+  }catch(err){
+    status.className = 'cert-note err';
+    status.textContent = 'PDFの生成に失敗しました。通信環境をご確認のうえ再度お試しください。（' + (err && err.message ? err.message : 'error') + '）';
+  }finally{
+    btn.disabled = false;
+  }
+}
+$('btnIssueCert').onclick = issueCertificate;
 
 refreshGrid();
 updateProgress();
