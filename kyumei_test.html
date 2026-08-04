@@ -249,16 +249,30 @@ function getVideoId(url){
   return m ? m[1] : '';
 }
 
+// 開始位置(秒)を取り出す。t=84s / t=1m30s / t=90 / start=84 などに対応。無ければ0。
+function getStartSeconds(url){
+  if(!url) return 0;
+  const m = url.match(/[?&#](?:t|start)=([0-9hms]+)/i);
+  if(!m) return 0;
+  const v = m[1];
+  if(/^\d+$/.test(v)) return parseInt(v, 10); // 純粋な秒数
+  let sec = 0;
+  const h = v.match(/(\d+)h/i); if(h) sec += parseInt(h[1],10) * 3600;
+  const mn = v.match(/(\d+)m/i); if(mn) sec += parseInt(mn[1],10) * 60;
+  const s = v.match(/(\d+)s/i); if(s) sec += parseInt(s[1],10);
+  return sec;
+}
+
 const CATEGORIES = ["救命の基礎知識", "応急手当の手順", "胸骨圧迫", "人工呼吸", "AEDの使い方", "気道異物・窒息"];
 const QUESTIONS = [{"q": "心臓や呼吸が止まってしまった状態のことを「心停止」、胸骨圧迫や人工呼吸を行うことを「心肺蘇生」という。", "valid": 1, "c": "心臓や呼吸が止まってしまった状態のことを「心停止」、胸骨圧迫や人工呼吸を行うことを「心肺蘇生」と言います。", "cat": "救命の基礎知識", "label": "心停止と心肺蘇生", "video": "https://youtu.be/Sl7lsKhXIZQ"}
 , {"q": "心肺蘇生は、医師、看護師、救急隊員にしか実施することができない。", "valid": 0, "c": "心肺蘇生は、誰でもできます。皆さんの目の前で倒れた人の心臓や呼吸が止まっている場合は、心肺蘇生を行います。", "cat": "救命の基礎知識", "label": "誰が実施できるか", "video": "https://youtu.be/Sl7lsKhXIZQ"}
 , {"q": "誰かが目の前で倒れた場合、119番通報より先に心肺蘇生を試みる。", "valid": 0, "c": "倒れた人の状態を確認して呼びかけに反応がなければ、まず119番通報をします。", "cat": "応急手当の手順", "label": "119番通報の優先", "video": "https://youtu.be/KQuNbUHR8S4"}
 , {"q": "119番通報したときは、通信指令員の質問に落ち着いて答え、指示に従って行動する。", "valid": 1, "c": "通信指令員の質問に落ち着いて答えた後、通信指令員から心肺蘇生の方法等の指示があるので、その指示に従って行動しましょう。電話のスピーカーモードも効果的です。", "cat": "応急手当の手順", "label": "119番通報の対応", "video": "https://youtu.be/Ap0RLqrEJqY"}
 , {"q": "救命の連鎖とは、「心停止の予防」、「早期認識と通報」、「一次救命処置（心肺蘇生とＡＥＤ）」、「二次救命処置と心拍再開後の集中治療」が素早くつながると、人命の助かる可能性が高くなることを示している。", "valid": 1, "c": "「心停止の予防」、「早期認識と通報」、「一次救命処置（心肺蘇生とＡＥＤ）」、「二次救命処置と心拍再開後の集中治療」を、バイスタンダー、救急隊員、医師がそれぞれの立場で素早く行えば、人命の助かる可能性が高くなります。", "cat": "救命の基礎知識", "label": "救命の連鎖", "video": "https://youtu.be/ModAtmNkxn8"}
-, {"q": "「心停止の予防」とは、心停止や呼吸停止になる前に、その初期症状に気づいて救急車を要請することである。", "valid": 1, "c": "「心停止の予防」とは、心停止に陥りやすい急性心筋梗塞や脳卒中などの初期症状に気づき、救急車を要請することです。", "cat": "救命の基礎知識", "label": "心停止の予防", "video": "https://youtu.be/ModAtmNkxn8"}
+, {"q": "「心停止の予防」とは、心停止や呼吸停止になる前に、その初期症状に気づいて救急車を要請することである。", "valid": 1, "c": "「心停止の予防」とは、心停止に陥りやすい急性心筋梗塞や脳卒中などの初期症状に気づき、救急車を要請することです。", "cat": "救命の基礎知識", "label": "心停止の予防", "video": "https://youtu.be/ModAtmNkxn8&t=19s"}
 , {"q": "救急隊が到着するまでは、傷病者に触れずに様子をみる。", "valid": 0, "c": "救急車が到着するまでに応急手当を行うと、救命の可能性が高くなります。目の前で倒れた人の心臓や呼吸が止まっている場合は、救急車の到着を待たず、心肺蘇生を開始します。", "cat": "応急手当の手順", "label": "救急隊到着前の対応", "video": "https://youtu.be/3DSDwQFfq4E"}
 , {"q": "成人が突然死する原因に、心筋梗塞や脳卒中が挙げられる。", "valid": 1, "c": "成人が突然死する原因には、心筋梗塞や脳卒中などがあり、これらの初期症状がみられたら、直ちに救急車を要請しましょう。", "cat": "救命の基礎知識", "label": "成人の突然死の原因", "video": "https://youtu.be/AEkkBlD4SeA"}
-, {"q": "小児の突然死の原因の多くは「不慮の事故」であり、安全に注意し、未然に事故を防ぐことが大切である。", "valid": 1, "c": "自動車に乗せるときはチャイルドシートを使用し、自転車に乗るときはヘルメットを着用させるなど、未然に事故を防ぎましょう。", "cat": "救命の基礎知識", "label": "小児の突然死の原因", "video": "https://youtu.be/lzgjBj2Du7c"}
+, {"q": "小児の突然死の原因の多くは「不慮の事故」であり、安全に注意し、未然に事故を防ぐことが大切である。", "valid": 1, "c": "自動車に乗せるときはチャイルドシートを使用し、自転車に乗るときはヘルメットを着用させるなど、未然に事故を防ぎましょう。", "cat": "救命の基礎知識", "label": "小児の突然死の原因", "video": "https://youtu.be/lzgjBj2Du7c&t=25s"}
 , {"q": "ＡＥＤによる電気ショックは、一次救命処置に含まれない。", "valid": 0, "c": "一次救命処置は、「心肺蘇生」の他に「ＡＥＤによる電気ショック」や「気道異物の除去」も含まれます。", "cat": "救命の基礎知識", "label": "一次救命処置の範囲", "video": "https://youtu.be/MxzeZ1gjQU8"}
 , {"q": "「ＡＥＤ」は電気ショックを与えて、心臓のふるえ（細動）を取り除く機械である。", "valid": 1, "c": "ＡＥＤは電気ショックを与えて、心臓のふるえを取り除きます。講習を受けていなくても使用できます。", "cat": "AEDの使い方", "label": "AEDの役割", "video": "https://youtu.be/MxzeZ1gjQU8&t=34s"}
 , {"q": "「気道異物の除去」は、口の中やノド等に詰まっている異物を取り除くことである。", "valid": 1, "c": "口の中やノド等に詰まっている異物を取り除く処置を「気道異物の除去」と言い、その処置には「背部叩打法」や「腹部突き上げ法」などがあります。", "cat": "気道異物・窒息", "label": "気道異物の除去とは", "video": "https://youtu.be/MxzeZ1gjQU8&t=84s"}
@@ -433,13 +447,14 @@ function showResult(i){
   $('answerLine').innerHTML = '正しい答え： <b>' + (correctAnswer ? 'マル（はい）' : 'バツ（いいえ）') + '</b>';
   $('commentaryText').textContent = q.c;
 
-  // 正解時のみ動画を表示
+  // 正解・不正解にかかわらず動画を表示
   const box = $('videoBox');
   const wrap = $('videoFrameWrap');
   const vid = getVideoId(q.video);
-  if(isOK && vid){
+  const start = getStartSeconds(q.video);
+  if(vid){
     box.style.display = 'block';
-    mountVideo(wrap, vid);
+    mountVideo(wrap, vid, start);
   } else {
     box.style.display = 'none';
     destroyPlayer();
@@ -489,10 +504,11 @@ function destroyPlayer(){
 }
 
 // サムネイルをクリックすると IFrame Player API で再生。失敗時は別タブにフォールバック
-function mountVideo(wrap, vid){
+function mountVideo(wrap, vid, start){
   destroyPlayer();
+  start = start || 0;
   const thumb = 'https://i.ytimg.com/vi/' + vid + '/hqdefault.jpg';
-  const watchUrl = 'https://www.youtube.com/watch?v=' + vid;
+  const watchUrl = 'https://www.youtube.com/watch?v=' + vid + (start ? '&t=' + start + 's' : '');
   wrap.innerHTML =
     '<img class="poster" src="' + thumb + '" alt="動画のサムネイル">' +
     '<span class="play" aria-hidden="true"></span>';
@@ -515,7 +531,7 @@ function mountVideo(wrap, vid){
       if(settled) return; settled = true;
       destroyPlayer();
       // サムネイルに戻し、別タブで開く
-      mountVideo(wrap, vid);
+      mountVideo(wrap, vid, start);
       openTab();
     };
     // プレーヤーが一定時間で準備できなければフォールバック
@@ -532,7 +548,7 @@ function mountVideo(wrap, vid){
         activePlayer = new YT.Player(holder, {
           videoId: vid,
           width: '100%', height: '100%',
-          playerVars: { rel:0, playsinline:1, autoplay:1 },
+          playerVars: { rel:0, playsinline:1, autoplay:1, start: start },
           events: {
             onReady: (e) => { clearTimeout(watchdog); settled = true; try{ e.target.playVideo(); }catch(_){} },
             onError: () => { clearTimeout(watchdog); fallback(); }
