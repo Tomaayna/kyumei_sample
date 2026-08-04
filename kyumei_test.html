@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>救命講習 確認テスト</title>
+<style>
+:root{
+  --ink:#1c2a33; --paper:#f5f2ea; --card:#ffffff;
+  --line:#d8d0c2; --sub:#6b7680;
+  --maru:#2f7d5b; --maru-bg:#e4f0e9;
+  --batsu:#c14a3d; --batsu-bg:#f7e6e2;
+  --alert:#c14a3d; --gold:#b8892b;
+  --shadow:0 2px 14px rgba(28,42,51,.08);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{
+  font-family:'Hiragino Kaku Gothic ProN','Yu Gothic',Meiryo,sans-serif;
+  background:var(--paper); color:var(--ink); line-height:1.7;
+  padding:20px 16px 60px; min-height:100vh;
+}
+.wrap{max-width:680px;margin:0 auto}
+header{text-align:center;margin-bottom:22px}
+.eyebrow{
+  font-size:12px; letter-spacing:.28em; color:var(--alert);
+  font-weight:700; margin-bottom:6px;
+}
+h1{font-size:24px;letter-spacing:.04em;font-weight:800}
+.tagline{font-size:13px;color:var(--sub);margin-top:4px}
+
+/* progress bar */
+.progress{
+  display:flex;align-items:center;gap:12px;
+  margin:18px 0 20px;font-size:13px;color:var(--sub);
+}
+.bar{flex:1;height:6px;background:var(--line);border-radius:99px;overflow:hidden}
+.bar > i{display:block;height:100%;background:var(--maru);width:0;transition:width .3s}
+
+/* selector grid */
+.selector-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px}
+.selector-head h2{font-size:15px;letter-spacing:.06em}
+.selector-head .hint{font-size:12px;color:var(--sub)}
+.grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(52px,1fr));
+  gap:8px;margin-bottom:22px;
+}
+.cell{
+  aspect-ratio:1/1;border:1.5px solid var(--line);background:var(--card);
+  border-radius:10px;font-size:15px;font-weight:700;color:var(--ink);
+  cursor:pointer;display:flex;align-items:center;justify-content:center;
+  position:relative;transition:transform .1s,border-color .15s;
+}
+.cell:hover{border-color:var(--maru)}
+.cell:active{transform:scale(.94)}
+.cell.correct{background:var(--maru-bg);border-color:var(--maru);color:var(--maru)}
+.cell.wrong{background:var(--batsu-bg);border-color:var(--batsu);color:var(--batsu)}
+.cell.correct::after,.cell.wrong::after{
+  position:absolute;top:-6px;right:-6px;width:18px;height:18px;border-radius:50%;
+  font-size:11px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;
+}
+.cell.correct::after{content:"○";background:var(--maru)}
+.cell.wrong::after{content:"×";background:var(--batsu)}
+.cell:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-bottom:8px}
+.btn{
+  border:1.5px solid var(--line);background:var(--card);color:var(--ink);
+  padding:9px 18px;border-radius:99px;font-size:13px;font-weight:700;cursor:pointer;
+  transition:border-color .15s,background .15s;
+}
+.btn:hover{border-color:var(--ink)}
+.btn.primary{background:var(--maru);border-color:var(--maru);color:#fff}
+.btn.primary:hover{background:#276a4c}
+
+/* question card */
+.card{
+  background:var(--card);border-radius:16px;box-shadow:var(--shadow);
+  padding:26px 22px;margin-bottom:18px;border-top:4px solid var(--alert);
+}
+.q-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.q-num{font-size:13px;font-weight:800;letter-spacing:.14em;color:var(--alert)}
+.q-label{font-size:11px;letter-spacing:.2em;color:var(--sub)}
+.q-text{font-size:17px;line-height:1.85;margin-bottom:24px}
+.answers{display:flex;gap:14px}
+.ans{
+  flex:1;padding:16px 8px;border-radius:14px;border:2px solid var(--line);
+  background:var(--card);cursor:pointer;text-align:center;
+  font-size:15px;font-weight:800;transition:transform .1s,border-color .15s,background .15s;
+}
+.ans .mark{display:block;font-size:34px;line-height:1}
+.ans.maru{color:var(--maru)}
+.ans.batsu{color:var(--batsu)}
+.ans.maru:hover{background:var(--maru-bg);border-color:var(--maru)}
+.ans.batsu:hover{background:var(--batsu-bg);border-color:var(--batsu)}
+.ans:active{transform:scale(.97)}
+.ans:disabled{cursor:default;opacity:.55}
+.ans.picked.maru{background:var(--maru-bg);border-color:var(--maru)}
+.ans.picked.batsu{background:var(--batsu-bg);border-color:var(--batsu)}
+.ans:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+
+/* result / commentary */
+.result{margin-top:22px;padding-top:20px;border-top:1px dashed var(--line);display:none}
+.result.show{display:block;animation:rise .3s ease}
+@keyframes rise{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.verdict{display:flex;align-items:center;gap:10px;font-weight:800;font-size:18px;margin-bottom:12px}
+.verdict .badge{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:20px}
+.verdict.ok{color:var(--maru)} .verdict.ok .badge{background:var(--maru)}
+.verdict.ng{color:var(--batsu)} .verdict.ng .badge{background:var(--batsu)}
+.answer-line{font-size:14px;color:var(--sub);margin-bottom:12px}
+.answer-line b{color:var(--ink)}
+.commentary{font-size:14.5px;line-height:1.85;background:var(--paper);border-radius:12px;padding:14px 16px}
+.commentary .c-title{font-size:12px;font-weight:800;letter-spacing:.1em;color:var(--alert);margin-bottom:6px}
+.video{margin-top:16px}
+.video .v-title{font-size:12px;font-weight:800;letter-spacing:.1em;color:var(--sub);margin-bottom:8px}
+.v-frame{position:relative;width:100%;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#000;box-shadow:var(--shadow);cursor:pointer}
+.v-frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.v-frame > div{position:absolute;inset:0;width:100%;height:100%}
+.v-frame .v-loading{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  color:#e8e2d4;font-size:13px;letter-spacing:.05em}
+.v-frame .poster{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.v-frame .play{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  width:68px;height:48px;border-radius:12px;background:rgba(193,74,61,.92);
+  display:flex;align-items:center;justify-content:center;pointer-events:none}
+.v-frame .play::after{content:"";border-style:solid;border-width:11px 0 11px 18px;
+  border-color:transparent transparent transparent #fff;margin-left:3px}
+.v-fallback{display:inline-block;margin-top:8px;font-size:12.5px;color:var(--alert);text-decoration:none;font-weight:700}
+.v-fallback:hover{text-decoration:underline}
+
+.nav{display:flex;justify-content:space-between;gap:12px}
+.nav .btn{flex:1}
+.nav .btn:disabled{opacity:.4;cursor:default}
+
+/* score panel */
+.score{
+  background:var(--card);border-radius:16px;box-shadow:var(--shadow);
+  padding:22px;margin-bottom:18px;text-align:center;display:none;
+}
+.score.show{display:block}
+.score .big{font-size:34px;font-weight:800;color:var(--maru)}
+.score .big small{font-size:16px;color:var(--sub);font-weight:700}
+.score .sub{font-size:13px;color:var(--sub);margin-top:4px}
+
+footer{text-align:center;font-size:11px;color:var(--sub);margin-top:26px;line-height:1.6}
+
+@media(max-width:420px){
+  .grid{grid-template-columns:repeat(auto-fill,minmax(46px,1fr))}
+  .q-text{font-size:16px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">CPR &middot; AED</div>
+    <h1>救命講習 確認テスト</h1>
+    <p class="tagline">全50問 ／ マル・バツ形式</p>
+  </header>
+
+  <div class="progress">
+    <span id="progLabel">解答済み 0 / 50</span>
+    <span class="bar"><i id="progFill"></i></span>
+    <span id="progScore">正解 0</span>
+  </div>
+
+  <div class="selector-head">
+    <h2>問題を選ぶ</h2>
+    <span class="hint">番号をタップして解答</span>
+  </div>
+  <div class="grid" id="grid"></div>
+
+  <div class="toolbar">
+    <button class="btn primary" id="btnNext">未解答の問題へ</button>
+    <button class="btn" id="btnReset">履歴をリセット</button>
+  </div>
+
+  <div class="score" id="scorePanel">
+    <div class="big"><span id="scoreNum">0</span><small>/50</small></div>
+    <div class="sub" id="scoreMsg"></div>
+  </div>
+
+  <div class="card" id="card" style="display:none">
+    <div class="q-meta">
+      <span class="q-num" id="qNum">第1問</span>
+      <span class="q-label">問題</span>
+    </div>
+    <p class="q-text" id="qText"></p>
+    <div class="answers">
+      <button class="ans maru" id="ansMaru" aria-label="マル"><span class="mark">○</span></button>
+      <button class="ans batsu" id="ansBatsu" aria-label="バツ"><span class="mark">×</span></button>
+    </div>
+
+    <div class="result" id="result">
+      <div class="verdict" id="verdict"><span class="badge"></span><span class="vtext"></span></div>
+      <p class="answer-line" id="answerLine"></p>
+      <div class="commentary">
+        <div class="c-title">解説</div>
+        <div id="commentaryText"></div>
+      </div>
+      <div class="video" id="videoBox">
+        <div class="v-title">参考動画</div>
+        <div class="v-frame" id="videoFrameWrap"></div>
+        <a class="v-fallback" id="videoLink" href="#" target="_blank" rel="noopener">
+          プレビュー環境では埋め込み再生できません。YouTube で開く ↗
+        </a>
+      </div>
+    </div>
+
+    <div class="nav" style="margin-top:22px">
+      <button class="btn" id="btnPrev">← 前の問題</button>
+      <button class="btn" id="btnFwd">次の問題 →</button>
+    </div>
+  </div>
+
+  <footer>
+    本テストは学習用の再現版です。実際の救命処置は最新の講習・指針に従ってください。<br>
+    解答状況はこのブラウザのメモリ上にのみ保持され、ページを閉じると消えます。
+  </footer>
+</div>
+
+<script>
+// 各問の正解時に表示する動画（今はダミーとして全問同じ動画を使用）
+const DUMMY_VIDEO_URL = 'https://youtu.be/Sl7lsKhXIZQ?si=ZcInbn-i5Mh3i6st';
+
+// YouTubeの各種URL形式から動画IDを取り出す
+function getVideoId(url){
+  if(!url) return '';
+  const m = url.match(/(?:youtu\.be\/|[?&]v=|\/embed\/)([A-Za-z0-9_-]{11})/);
+  return m ? m[1] : '';
+}
+
+const QUESTIONS = [{"q": "心臓や呼吸が止まってしまった状態のことを「心停止」、胸骨圧迫や人工呼吸を行うことを「心肺蘇生」という。", "valid": 1, "c": "心臓や呼吸が止まってしまった状態のことを「心停止」、胸骨圧迫や人工呼吸を行うことを「心肺蘇生」と言います。"}, {"q": "心肺蘇生は、医師、看護師、救急隊員にしか実施することができない。", "valid": 0, "c": "心肺蘇生は、誰でもできます。皆さんの目の前で倒れた人の心臓や呼吸が止まっている場合は、心肺蘇生を行います。"}, {"q": "誰かが目の前で倒れた場合、119番通報より先に心肺蘇生を試みる。", "valid": 0, "c": "倒れた人の状態を確認して呼びかけに反応がなければ、まず119番通報をします。"}, {"q": "119番通報したときは、通信指令員の質問に落ち着いて答え、指示に従って行動する。", "valid": 1, "c": "通信指令員の質問に落ち着いて答えた後、通信指令員から心肺蘇生の方法等の指示があるので、その指示に従って行動しましょう。電話のスピーカーモードも効果的です。"}, {"q": "救命の連鎖とは、「心停止の予防」、「早期認識と通報」、「一次救命処置（心肺蘇生とＡＥＤ）」、「二次救命処置と心拍再開後の集中治療」が素早くつながると、人命の助かる可能性が高くなることを示している。", "valid": 1, "c": "「心停止の予防」、「早期認識と通報」、「一次救命処置（心肺蘇生とＡＥＤ）」、「二次救命処置と心拍再開後の集中治療」を、バイスタンダー、救急隊員、医師がそれぞれの立場で素早く行えば、人命の助かる可能性が高くなります。"}, {"q": "「心停止の予防」とは、心停止や呼吸停止になる前に、その初期症状に気づいて救急車を要請することである。", "valid": 1, "c": "「心停止の予防」とは、心停止に陥りやすい急性心筋梗塞や脳卒中などの初期症状に気づき、救急車を要請することです。"}, {"q": "救急隊が到着するまでは、傷病者に触れずに様子をみる。", "valid": 0, "c": "救急車が到着するまでに応急手当を行うと、救命の可能性が高くなります。目の前で倒れた人の心臓や呼吸が止まっている場合は、救急車の到着を待たず、心肺蘇生を開始します。"}, {"q": "成人が突然死する原因に、心筋梗塞や脳卒中が挙げられる。", "valid": 1, "c": "成人が突然死する原因には、心筋梗塞や脳卒中などがあり、これらの初期症状がみられたら、直ちに救急車を要請しましょう。"}, {"q": "小児の突然死の原因の多くは「不慮の事故」であり、安全に注意し、未然に事故を防ぐことが大切である。", "valid": 1, "c": "自動車に乗せるときはチャイルドシートを使用し、自転車に乗るときはヘルメットを着用させるなど、未然に事故を防ぎましょう。"}, {"q": "ＡＥＤによる電気ショックは、一次救命処置に含まれない。", "valid": 0, "c": "一次救命処置は、「心肺蘇生」の他に「ＡＥＤによる電気ショック」や「気道異物の除去」も含まれます。"}, {"q": "「ＡＥＤ」は電気ショックを与えて、心臓のふるえ（細動）を取り除く機械である。", "valid": 1, "c": "ＡＥＤは電気ショックを与えて、心臓のふるえを取り除きます。講習を受けていなくても使用できます。"}, {"q": "「気道異物の除去」は、口の中やノド等に詰まっている異物を取り除くことである。", "valid": 1, "c": "口の中やノド等に詰まっている異物を取り除く処置を「気道異物の除去」と言い、その処置には「背部叩打法」や「腹部突き上げ法」などがあります。"}, {"q": "目の前で人が倒れたり、倒れている人を見つけた場合、まずは周囲の安全を確認する。", "valid": 1, "c": "周囲が安全であることを確認し、身の周りに危険が無いことを確認してから倒れている人に近づきます。"}, {"q": "倒れている人の反応は、やさしく肩を叩きながら、大きな声で呼びかけて確認します。", "valid": 1, "c": "倒れている人の反応の確認は、肩をやさしく叩きながら、大きな声で「分かりますか」「大丈夫ですか」と呼びかけて確認します。"}, {"q": "反応がない場合は、ただちに胸骨圧迫を開始する。", "valid": 0, "c": "反応がない場合は、大声で叫んで応援を求め、応援に来てくれた人に119番通報やＡＥＤを持ってくるよう依頼します。"}, {"q": "傷病者に反応がなく、大声で叫んで助けを求めたところ、誰も来なかった場合は、心肺蘇生を優先する。", "valid": 0, "c": "誰も来なかった場合は、119番通報を優先します。119番通報し、通信指令員の指示に従って落ち着いて行動しましょう。"}, {"q": "普段どおりの呼吸をしているかどうかの確認は、胸やお腹の動きで判断する。", "valid": 1, "c": "呼吸の確認は、胸やお腹が上下しているかをみて、判断します。確認は10秒以内で行い、普段どおりの呼吸がなければ、胸骨圧迫を開始します。判断に迷う場合や、分からない場合も胸骨圧迫を開始します。"}, {"q": "心臓が止まった直後には、しゃくりあげるような途切れ途切れの呼吸がみられるが、これは普段どおりの呼吸ではないため、心肺蘇生を開始した。", "valid": 1, "c": "心臓が止まった直後には、しゃくりあげるような途切れ途切れの呼吸になることがありますが、胸やお腹の動きが普段どおりではないため、心停止と判断して胸骨圧迫を開始します。"}, {"q": "普段どおりの呼吸があるかどうか判断に迷った場合は、呼吸がないものとして胸骨圧迫を実施する。", "valid": 1, "c": "普段どおりの呼吸があるかどうか分からない場合、判断に迷う場合は、ためらわずに胸骨圧迫を実施してください。"}, {"q": "心肺蘇生で最も重要なのは、胸骨圧迫である。", "valid": 1, "c": "心臓や呼吸が止まっている人には、胸骨圧迫を行い、絶え間なく続けることが重要です。"}, {"q": "胸骨圧迫は、手の付け根の部分で胸の真ん中を目安に真上から圧迫する。", "valid": 1, "c": "心臓は、胸骨の裏側にあり、圧迫する位置は胸骨の下半分で、胸の真ん中が目安です。手の付け根の部分で胸の真ん中を真上から圧迫します。"}, {"q": "胸骨圧迫は、胸が約5ｃｍ沈むよう強く圧迫する。", "valid": 1, "c": "肘を真っ直ぐに伸ばし、手の付け根の部分に体重をかけて、傷病者の胸が約5ｃｍ沈むように強く圧迫します。"}, {"q": "胸骨圧迫のテンポは、１分間に少なくとも50回である。", "valid": 0, "c": "圧迫するテンポは、1分間に100～120回で、絶え間なく続けます。"}, {"q": "人工呼吸を行う時は、気道確保を行う。", "valid": 1, "c": "人工呼吸を行う時は、空気の通り道、気道を確保します。人差し指と中指を傷病者のあご先に当て、もう片方の手のひらを額に当てます。あご先を持ち上げながら、額を後方に押し下げます。これを頭部後屈あご先挙上法と言います。"}, {"q": "人工呼吸は、気道確保をしたまま親指と人差し指で鼻をつまみ、口を覆い１秒間息を吹き込む。", "valid": 1, "c": "吹き込む息が漏れないように、親指と人差し指で傷病者の鼻をつまみ、口を大きく開けて傷病者の口を覆って、１秒間息を吹き込みます。胸が上がることを確認して、２回吹き込みます。"}, {"q": "人工呼吸をして胸が上がらない場合は、胸が上がるまで人工呼吸をくり返す。", "valid": 0, "c": "胸骨圧迫の中断時間は10秒以内にとどめ、胸が上がらない場合でも、２回までとし、胸骨圧迫を再開しましょう。"}, {"q": "口に吐物や血液がある場合など、人工呼吸がためらわれる時は行わなくてもよい。", "valid": 1, "c": "このような場合は、胸骨圧迫のみを続けてください。人工呼吸は、可能な場合のみ実施しましょう。"}, {"q": "心肺蘇生は、救急隊員が見えたら、すぐにやめて引き継がなくてはいけない。", "valid": 0, "c": "救急隊員が見えても、すぐに心肺蘇生をやめないでください。心肺蘇生を中断することなく救急隊員に交代してほしいので、それまで続けて下さい。ただし、普段どおりの呼吸をし始める、目的のある仕草が認められるときは、心肺蘇生を一旦中断して様子をみてください。"}, {"q": "バイスタンダーが２人以上いる場合は、胸骨圧迫は10分を目安に交代する。", "valid": 0, "c": "バイスタンダーが２人以上いる場合には、胸骨圧迫は１～２分を目安に交代します。"}, {"q": "小児の胸骨圧迫では、胸の厚さの約1/3程度が沈む強さで圧迫する。", "valid": 1, "c": "小児の心肺蘇生も、成人の場合と同様に胸骨圧迫30回、人工呼吸2回を繰り返し行います。ただし、胸骨圧迫の強さは胸の厚さの約1/3程度が沈むように圧迫します。"}, {"q": "乳児の胸骨圧迫は、両乳頭を結ぶ線の少し足側を、指２本で胸の厚さの約1/3程度が沈む強さで圧迫する。", "valid": 1, "c": "乳児の胸骨圧迫では、両乳頭を結ぶ線の少し足側、強さは胸の厚さの約1/3程度が沈むように指２本で圧迫します。"}, {"q": "ＡＥＤを使うためには、資格が必要である。", "valid": 0, "c": "ＡＥＤは誰でも使うことができ、特別な資格などは必要ありません。"}, {"q": "ＡＥＤはいくつか種類があるが、基本的な手順は同じように設計されている。", "valid": 1, "c": "ＡＥＤは、どの機種も基本的な手順は同じように設計されています。カバーを開け、電源が入ると音声ガイダンスが流れます。指示に従って、落ち着いて操作しましょう。ショックボタンを押さなくても自動的に電気ショックが行われるオートショックAEDもありますが、その際も音声ガイダンスに従いましょう。"}, {"q": "ＡＥＤの電極パッドと肌との間にすき間を作らないように貼る。", "valid": 1, "c": "電極パッドと肌の間に空気が入っていると電気がうまく伝わらないため、肌に密着させてすき間を作らないように貼ります。"}, {"q": "電極パッドの貼り付け位置が濡れている場合には、乾いたタオルなどで拭き取る。", "valid": 1, "c": "電極パッドを貼る部位とその周辺の水分を、乾いたタオルや布で拭き取ってください。濡れていると電気が体表を伝わって流れてしまい、ＡＥＤの効果が不十分になるためです。乾いたタオルなどで胸を拭いてから電極パッドを貼り付けてください。"}, {"q": "電極パッドの貼り付け位置にペースメーカーなどが植込まれている場合は、その上に電極パッドを貼る。", "valid": 0, "c": "傷病者にペースメーカーなどが埋め込まれている場合、胸に硬いこぶのような出っ張りが見えます。電極パッドは、その部位を避けて貼り付けます。"}, {"q": "電極パッドの貼り付け位置に貼り薬がある場合、はがして薬剤を拭き取る。", "valid": 1, "c": "電極パッドを貼り薬の上から貼り付けると、電気ショックの効果が弱まったり、やけどを起こしたりする場合があります。電極パッドの貼り付け位置に貼り薬がある場合、はがして薬剤を拭き取ります。"}, {"q": "小学生には、未就学児用パッドを使用する。", "valid": 0, "c": "小学生以上には小学生～大人用パッドを使用します。未就学児は体が小さいので、未就学児用パッドを使用してください。未就学児用パッドには減衰器が付いていて、電気ショックを弱めます。"}, {"q": "未就学児に対し、未就学児用パッドが無い場合には、小学生～大人用パッドを使用する。", "valid": 1, "c": "未就学児用パッドが無い場合は、小学生～大人用パッドを使用してください。小学生以上に対して、未就学児用パッドは使用しないでください。"}, {"q": "ＡＥＤの電極パッドは、イラストに従って服の上から貼り付ける。", "valid": 0, "c": "傷病者の服の上からではなく、電極パッドに描かれたイラストに従って、肌に密着するように貼り付けます。"}, {"q": "心電図の解析中は、音声ガイダンスに従って傷病者に触れないようにする。", "valid": 1, "c": "誰かが傷病者の体に触れていると、心電図の解析がうまく行われないことがあります。音声ガイダンスに従って、周囲の人にも傷病者から離れるよう伝え、誰も触れていないことを確認してください。"}, {"q": "電気ショックの後、直ちに心肺蘇生を再開する。", "valid": 1, "c": "ＡＥＤは、電気ショックの後、２分おきに自動的に心電図の解析を行います。ＡＥＤから音声ガイダンスがあるまでは心肺蘇生を続けます。"}, {"q": "電気ショックと心肺蘇生は、救急隊員に交代するまで何度も繰り返す。", "valid": 1, "c": "ＡＥＤは、2分毎に解析を繰り返し、必要であれば電気ショックを行います。ＡＥＤのガイダンスに従って、救急隊員に交代するまで心肺蘇生と電気ショックを繰り返します。"}, {"q": "喉に異物が詰まった時、傷病者が咳のできる間は、咳を続けさせる。", "valid": 1, "c": "咳ができる間は咳を続けさせ、注意深く見守ります。ただし、咳が弱くなった場合、咳ができない場合には窒息としての迅速な対応が必要です。"}, {"q": "チョークサイン（窒息のサイン）を認めたらすぐに119番通報を依頼する。", "valid": 1, "c": "チョークサイン（窒息のサイン）をしている人など、窒息と判断した場合は、直ちに119番通報を依頼します。"}, {"q": "腹部突き上げ法は、傷病者に向き合って、上腹部を押す。", "valid": 0, "c": "腹部突き上げ法は、傷病者の後ろから抱えるように腕を回して、臍より少し上をすばやく押し上げます。"}, {"q": "窒息の傷病者には、まず背部叩打法を行い、効果がなければ腹部突き上げ法を行う。", "valid": 1, "c": "窒息の傷病者にはまずは背部叩打法を実施し、効果がない場合は腹部突き上げ法を行ってください。"}, {"q": "傷病者に気道異物が疑われて反応がない場合、または反応が途中でなくなってしまった場合は、119番通報して心肺蘇生を行う。", "valid": 1, "c": "119番通報をしていない場合は、まず119番通報を行います。ＡＥＤが近くにあれば取りに行き、その後ただちに心肺蘇生を行います。"}, {"q": "乳児の気道異物除去は、背部叩打法と胸部突き上げ法である。", "valid": 1, "c": "乳児の気道異物除去は、片腕の上に乳児をうつ伏せに乗せて背中を力強く数回連続して叩く背部叩打法と、片腕の上に乳児を仰向けに乗せて胸の真ん中を２本の指で力強く数回連続して圧迫する胸部突き上げ法を行います。"}, {"q": "反応はないが、普段どおりの呼吸をしている場合は、傷病者を横向きにさせて、様子を見ながら応援や救急隊員が来るのを待つ。", "valid": 1, "c": "喉の奥の空気の通り道が狭まったり、吐物で詰まったりすることを予防するために、回復体位にして様子をみます。"}];
+const N = QUESTIONS.length;
+// state[i] = null (未解答) | true (正解) | false (不正解), pick[i] = 選んだ答え(bool)
+let state = new Array(N).fill(null);
+let pick  = new Array(N).fill(null);
+let current = 0;
+
+const $ = id => document.getElementById(id);
+const grid = $('grid');
+
+// build grid
+QUESTIONS.forEach((_, i) => {
+  const b = document.createElement('button');
+  b.className = 'cell';
+  b.textContent = i + 1;
+  b.setAttribute('aria-label', '第' + (i+1) + '問');
+  b.onclick = () => openQuestion(i);
+  grid.appendChild(b);
+});
+
+function refreshGrid(){
+  [...grid.children].forEach((c, i) => {
+    c.classList.remove('correct','wrong');
+    if(state[i] === true) c.classList.add('correct');
+    else if(state[i] === false) c.classList.add('wrong');
+  });
+}
+
+function updateProgress(){
+  const done = state.filter(s => s !== null).length;
+  const correct = state.filter(s => s === true).length;
+  $('progLabel').textContent = '解答済み ' + done + ' / ' + N;
+  $('progScore').textContent = '正解 ' + correct;
+  $('progFill').style.width = (done / N * 100) + '%';
+  // score panel appears when all answered
+  const panel = $('scorePanel');
+  if(done === N){
+    panel.classList.add('show');
+    $('scoreNum').textContent = correct;
+    const pct = Math.round(correct / N * 100);
+    let msg;
+    if(pct === 100) msg = '全問正解！ 完璧です。';
+    else if(pct >= 80) msg = '正答率 ' + pct + '%。よく理解できています。';
+    else if(pct >= 60) msg = '正答率 ' + pct + '%。もう一息、復習しましょう。';
+    else msg = '正答率 ' + pct + '%。解説を読み返して再挑戦を。';
+    $('scoreMsg').textContent = msg;
+  } else {
+    panel.classList.remove('show');
+  }
+}
+
+function openQuestion(i){
+  current = i;
+  const q = QUESTIONS[i];
+  $('card').style.display = 'block';
+  $('qNum').textContent = '第' + (i+1) + '問';
+  $('qText').textContent = q.q;
+
+  const maru = $('ansMaru'), batsu = $('ansBatsu');
+  maru.classList.remove('picked'); batsu.classList.remove('picked');
+  maru.disabled = false; batsu.disabled = false;
+  maru.onclick = () => answer(true);
+  batsu.onclick = () => answer(false);
+
+  $('btnPrev').disabled = (i === 0);
+  $('btnFwd').disabled = (i === N - 1);
+
+  if(state[i] !== null){
+    showResult(i);
+  } else {
+    $('result').classList.remove('show');
+    destroyPlayer();
+    $('videoFrameWrap').innerHTML = ''; // 再生中の動画を停止
+  }
+  $('card').scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function answer(choice){
+  const i = current;
+  if(state[i] !== null) return; // already answered, locked
+  const correctAnswer = QUESTIONS[i].valid === 1; // true => マル正解
+  pick[i] = choice;
+  state[i] = (choice === correctAnswer);
+  showResult(i);
+  refreshGrid();
+  updateProgress();
+}
+
+function showResult(i){
+  const q = QUESTIONS[i];
+  const correctAnswer = q.valid === 1;
+  const maru = $('ansMaru'), batsu = $('ansBatsu');
+  maru.disabled = true; batsu.disabled = true;
+  maru.classList.toggle('picked', pick[i] === true);
+  batsu.classList.toggle('picked', pick[i] === false);
+
+  const v = $('verdict');
+  const isOK = state[i] === true;
+  v.className = 'verdict ' + (isOK ? 'ok' : 'ng');
+  v.querySelector('.badge').textContent = isOK ? '○' : '×';
+  v.querySelector('.vtext').textContent = isOK ? '正解' : '不正解';
+
+  $('answerLine').innerHTML = '正しい答え： <b>' + (correctAnswer ? 'マル（はい）' : 'バツ（いいえ）') + '</b>';
+  $('commentaryText').textContent = q.c;
+
+  // 正解時のみ動画を表示
+  const box = $('videoBox');
+  const wrap = $('videoFrameWrap');
+  const vid = getVideoId(q.video || DUMMY_VIDEO_URL);
+  if(isOK && vid){
+    box.style.display = 'block';
+    mountVideo(wrap, vid);
+    $('videoLink').href = 'https://www.youtube.com/watch?v=' + vid;
+  } else {
+    box.style.display = 'none';
+    destroyPlayer();
+    wrap.innerHTML = ''; // 再生中の動画を停止
+  }
+
+  $('result').classList.add('show');
+}
+
+// 埋め込み再生が使える環境かどうかを判定（明らかに不可な環境は最初から別タブへ）
+function canEmbed(){
+  try{
+    if(location.protocol === 'file:') return false;      // ローカルファイル直開き
+    if(!location.origin || location.origin === 'null') return false; // サンドボックス等
+    if(window.top !== window.self) return false;         // iframe内プレビュー
+    return true;
+  }catch(e){ return false; } // クロスオリジンでtopにアクセスできない＝サンドボックス
+}
+
+// --- YouTube IFrame Player API のロード管理 ---
+let ytApiState = 'none'; // none | loading | ready
+const ytApiQueue = [];
+function loadYouTubeApi(cb){
+  if(ytApiState === 'ready'){ cb(); return; }
+  ytApiQueue.push(cb);
+  if(ytApiState === 'loading') return;
+  ytApiState = 'loading';
+  window.onYouTubeIframeAPIReady = () => {
+    ytApiState = 'ready';
+    ytApiQueue.splice(0).forEach(fn => fn());
+  };
+  const s = document.createElement('script');
+  s.src = 'https://www.youtube.com/iframe_api';
+  s.onerror = () => { // APIスクリプト自体が読めない環境
+    ytApiState = 'none';
+    ytApiQueue.splice(0).forEach(fn => fn(true /* failed */));
+  };
+  document.head.appendChild(s);
+}
+
+let activePlayer = null;
+function destroyPlayer(){
+  if(activePlayer && activePlayer.destroy){
+    try{ activePlayer.destroy(); }catch(e){}
+  }
+  activePlayer = null;
+}
+
+// サムネイルをクリックすると IFrame Player API で再生。失敗時は別タブにフォールバック
+function mountVideo(wrap, vid){
+  destroyPlayer();
+  const thumb = 'https://i.ytimg.com/vi/' + vid + '/hqdefault.jpg';
+  const watchUrl = 'https://www.youtube.com/watch?v=' + vid;
+  wrap.innerHTML =
+    '<img class="poster" src="' + thumb + '" alt="動画のサムネイル">' +
+    '<span class="play" aria-hidden="true"></span>';
+  wrap.setAttribute('role','button');
+  wrap.setAttribute('tabindex','0');
+  wrap.setAttribute('aria-label','動画を再生');
+
+  const openTab = () => window.open(watchUrl, '_blank', 'noopener');
+
+  const play = () => {
+    // 明らかに埋め込み不可の環境は即別タブ
+    if(!canEmbed()){ openTab(); return; }
+
+    // 読み込み中表示
+    wrap.innerHTML = '<div class="v-loading">動画を読み込み中…</div>';
+    wrap.removeAttribute('role'); wrap.removeAttribute('tabindex');
+
+    let settled = false;
+    const fallback = () => {
+      if(settled) return; settled = true;
+      destroyPlayer();
+      // サムネイルに戻し、別タブで開く
+      mountVideo(wrap, vid);
+      openTab();
+    };
+    // プレーヤーが一定時間で準備できなければフォールバック
+    const watchdog = setTimeout(fallback, 4000);
+
+    // API経由でプレーヤー生成用のターゲット要素を用意
+    const holder = document.createElement('div');
+    wrap.innerHTML = '';
+    wrap.appendChild(holder);
+
+    loadYouTubeApi((failed) => {
+      if(failed){ clearTimeout(watchdog); fallback(); return; }
+      try{
+        activePlayer = new YT.Player(holder, {
+          videoId: vid,
+          width: '100%', height: '100%',
+          playerVars: { rel:0, playsinline:1, autoplay:1 },
+          events: {
+            onReady: (e) => { clearTimeout(watchdog); settled = true; try{ e.target.playVideo(); }catch(_){} },
+            onError: () => { clearTimeout(watchdog); fallback(); }
+          }
+        });
+      }catch(e){
+        clearTimeout(watchdog); fallback();
+      }
+    });
+  };
+
+  wrap.onclick = play;
+  wrap.onkeydown = (e) => { if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); play(); } };
+}
+
+$('btnPrev').onclick = () => { if(current > 0) openQuestion(current - 1); };
+$('btnFwd').onclick  = () => { if(current < N - 1) openQuestion(current + 1); };
+
+$('btnNext').onclick = () => {
+  let idx = state.findIndex(s => s === null);
+  if(idx === -1){ idx = 0; } // all done -> loop to first
+  openQuestion(idx);
+};
+
+$('btnReset').onclick = () => {
+  if(!confirm('解答履歴をすべてリセットします。よろしいですか？')) return;
+  state = new Array(N).fill(null);
+  pick  = new Array(N).fill(null);
+  refreshGrid();
+  updateProgress();
+  $('card').style.display = 'none';
+  $('scorePanel').classList.remove('show');
+  window.scrollTo({top:0, behavior:'smooth'});
+};
+
+refreshGrid();
+updateProgress();
+</script>
+</body>
+</html>
