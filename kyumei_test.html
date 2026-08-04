@@ -793,6 +793,18 @@ function genDeviceId(){
 // --- モード切替 ---
 function switchMode(next){
   if(mode === next) return;
+
+  // 修了テスト開始後（進行中または採点後）に練習モードへ切り替える場合は警告
+  if(next === 'practice' && mode === 'exam'){
+    const examStarted = $('examRun').style.display !== 'none'
+                     || $('examResult').classList.contains('show');
+    if(examStarted){
+      if(!confirm('練習モードに切り替えると、現在の回答状況が失われます。練習モードに切り替えてもよろしいですか？')){
+        return; // キャンセル：切替を中止
+      }
+    }
+  }
+
   mode = next;
   // カード・動画を閉じる
   destroyPlayer();
