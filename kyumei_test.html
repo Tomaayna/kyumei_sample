@@ -123,8 +123,6 @@ h1{font-size:24px;letter-spacing:.04em;font-weight:800}
   display:flex;align-items:center;justify-content:center;pointer-events:none}
 .v-frame .play::after{content:"";border-style:solid;border-width:11px 0 11px 18px;
   border-color:transparent transparent transparent #fff;margin-left:3px}
-.v-fallback{display:inline-block;margin-top:8px;font-size:12.5px;color:var(--alert);text-decoration:none;font-weight:700}
-.v-fallback:hover{text-decoration:underline}
 
 .nav{display:flex;justify-content:space-between;gap:12px}
 .nav .btn{flex:1}
@@ -141,6 +139,10 @@ h1{font-size:24px;letter-spacing:.04em;font-weight:800}
 .score .sub{font-size:13px;color:var(--sub);margin-top:4px}
 
 footer{text-align:center;font-size:11px;color:var(--sub);margin-top:26px;line-height:1.6}
+footer .credit{font-size:12px;color:var(--ink);font-weight:700;margin-bottom:6px;
+  padding-top:16px;border-top:1px solid var(--line);line-height:1.7}
+footer .credit a{color:var(--maru);word-break:break-all}
+footer .credit-note{font-size:11px;color:var(--sub);margin-bottom:14px;line-height:1.7}
 
 @media(max-width:420px){
   .grid{grid-template-columns:repeat(auto-fill,minmax(46px,1fr))}
@@ -199,9 +201,6 @@ footer{text-align:center;font-size:11px;color:var(--sub);margin-top:26px;line-he
       <div class="video" id="videoBox">
         <div class="v-title">参考動画</div>
         <div class="v-frame" id="videoFrameWrap"></div>
-        <a class="v-fallback" id="videoLink" href="#" target="_blank" rel="noopener">
-          プレビュー環境では埋め込み再生できません。YouTube で開く ↗
-        </a>
       </div>
     </div>
 
@@ -212,6 +211,14 @@ footer{text-align:center;font-size:11px;color:var(--sub);margin-top:26px;line-he
   </div>
 
   <footer>
+    <p class="credit">
+      出典：総務省消防庁「応急手当WEB講習」<br>
+      （<a href="https://www.fdma.go.jp/relocation/kyukyukikaku/oukyu/index.html" target="_blank" rel="noopener">https://www.fdma.go.jp/relocation/kyukyukikaku/oukyu/index.html</a>）
+    </p>
+    <p class="credit-note">
+      本テストの問題・解説文および参考動画は、総務省消防庁が提供する上記コンテンツを利用しています。
+      各コンテンツの著作権は総務省消防庁に帰属します。
+    </p>
     本テストは学習用の再現版です。実際の救命処置は最新の講習・指針に従ってください。<br>
     解答状況はこのブラウザのメモリ上にのみ保持され、ページを閉じると消えます。
   </footer>
@@ -340,7 +347,6 @@ function showResult(i){
   if(isOK && vid){
     box.style.display = 'block';
     mountVideo(wrap, vid);
-    $('videoLink').href = 'https://www.youtube.com/watch?v=' + vid;
   } else {
     box.style.display = 'none';
     destroyPlayer();
