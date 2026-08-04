@@ -239,10 +239,8 @@ footer .credit-note{font-size:11px;color:var(--sub);margin-bottom:14px;line-heig
 </div>
 
 <script>
-// 正解時に表示する動画。各問データに "video" を書けば問題ごとに個別指定できる（例：下のQUESTIONS[0]）。
-// "video" が無い問題は、この DUMMY_VIDEO_URL が使われる。
+// 正解時に表示する動画。各問データの "video" で問題ごとに個別指定する。
 // URLは youtu.be / watch?v= / embed のどの形式でもOK（getVideoIdが動画IDを自動抽出）。
-const DUMMY_VIDEO_URL = 'https://youtu.be/Sl7lsKhXIZQ?si=ZcInbn-i5Mh3i6st';
 
 // YouTubeの各種URL形式から動画IDを取り出す
 function getVideoId(url){
@@ -438,7 +436,7 @@ function showResult(i){
   // 正解時のみ動画を表示
   const box = $('videoBox');
   const wrap = $('videoFrameWrap');
-  const vid = getVideoId(q.video || DUMMY_VIDEO_URL);
+  const vid = getVideoId(q.video);
   if(isOK && vid){
     box.style.display = 'block';
     mountVideo(wrap, vid);
