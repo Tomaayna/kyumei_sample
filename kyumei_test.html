@@ -622,7 +622,7 @@ function showResult(pos){
   v.querySelector('.badge').textContent = isOK ? '○' : '×';
   v.querySelector('.vtext').textContent = isOK ? '正解' : '不正解';
 
-  $('answerLine').innerHTML = '正しい答え： <b>' + (correctAnswer ? 'マル（はい）' : 'バツ（いいえ）') + '</b>';
+  $('answerLine').innerHTML = '正しい答え： <b>' + (correctAnswer ? '○' : '×') + '</b>';
   $('commentaryText').textContent = q.c;
 
   // 正解・不正解にかかわらず動画を表示
