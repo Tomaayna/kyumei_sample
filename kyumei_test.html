@@ -257,8 +257,7 @@ footer .credit-note{font-size:11px;color:var(--sub);margin-bottom:14px;line-heig
       </p>
       <ul class="exam-notes">
         <li>出題順・問題内容は開始のたびに変わります。</li>
-        <li>各問は解答すると確定し、後から変更できません。</li>
-        <li>参考動画は本テスト中も解答後に表示されます。</li>
+        <li>各問は採点前であれば何度でも解答を変更できます。</li>
         <li>解答状況はページを閉じると失われます。</li>
       </ul>
       <div class="toolbar" style="margin-top:6px">
@@ -565,7 +564,6 @@ function openQuestion(pos){
     $('videoFrameWrap').innerHTML = '';
     const picked = examPick[pos];
     if(picked !== null && picked !== undefined){
-      maru.disabled = true; batsu.disabled = true;
       maru.classList.toggle('picked', picked === true);
       batsu.classList.toggle('picked', picked === false);
     }
@@ -587,11 +585,9 @@ function answer(choice){
   const pos = activeCurrent();
 
   if(mode === 'exam'){
-    // 修了テスト中は正誤を出さず、選択のみ記録（採点時に集計）
+    // 修了テスト中は正誤を出さず、選択のみ記録（採点前は変更可）
     examPick[pos] = choice;
-    // 選んだ方をハイライトし、両ボタンをロック
     const maru = $('ansMaru'), batsu = $('ansBatsu');
-    maru.disabled = true; batsu.disabled = true;
     maru.classList.toggle('picked', choice === true);
     batsu.classList.toggle('picked', choice === false);
     refreshExamGrid();
@@ -770,7 +766,7 @@ $('btnReset').onclick = () => {
    修了テストモード
    ========================================================= */
 
-// --- 端末固有ID（localStorageに保存して再利用） ---
+// --- 端末ID（localStorageに保存して再利用） ---
 const DEVICE_ID_KEY = 'kyumei_device_id';
 function getDeviceId(){
   let id = null;
