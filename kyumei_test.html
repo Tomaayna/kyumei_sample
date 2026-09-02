@@ -50,7 +50,7 @@ h1{font-size:24px;letter-spacing:.04em;font-weight:800}
 .cat-head .cat-count{font-size:11px;font-weight:700;color:var(--sub);
   background:var(--paper);border:1px solid var(--line);border-radius:99px;padding:2px 9px}
 .cat-head .cat-line{flex:1;height:1px;background:var(--line)}
-.cat-videos{margin-top:12px}
+.cat-videos{margin:12px 0 14px}
 .cat-video-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
 @media(max-width:520px){ .cat-video-grid{grid-template-columns:1fr} }
 
@@ -528,23 +528,7 @@ const groupByIndex = new Array(N); // 問題番号 -> 所属カテゴリのグ�
       '<span class="cat-line"></span>';
     group.appendChild(head);
 
-    const grid = document.createElement('div');
-    grid.className = 'grid';
-    items.forEach(i => {
-      const b = document.createElement('button');
-      b.className = 'cell';
-      b.setAttribute('aria-label', '第' + (i+1) + '問 ' + QUESTIONS[i].label);
-      b.innerHTML =
-        '<span class="num">' + (i+1) + '</span>' +
-        '<span class="lbl">' + QUESTIONS[i].label + '</span>';
-      b.onclick = () => openQuestion(i);
-      grid.appendChild(b);
-      cellByIndex[i] = b;
-      groupByIndex[i] = group;
-    });
-    group.appendChild(grid);
-
-    // このカテゴリの動画（CATEGORY_VIDEOS）を一覧の下に表示
+    // このカテゴリの動画（CATEGORY_VIDEOS）をカテゴリ見出しと問題一覧の間に表示
     const urls = (CATEGORY_VIDEOS[cat] || []).filter(u => u && getVideoId(u));
     if(urls.length){
       const vbox = document.createElement('div');
@@ -560,6 +544,22 @@ const groupByIndex = new Array(N); // 問題番号 -> 所属カテゴリのグ�
       vbox.appendChild(vgrid);
       group.appendChild(vbox);
     }
+
+    const grid = document.createElement('div');
+    grid.className = 'grid';
+    items.forEach(i => {
+      const b = document.createElement('button');
+      b.className = 'cell';
+      b.setAttribute('aria-label', '第' + (i+1) + '問 ' + QUESTIONS[i].label);
+      b.innerHTML =
+        '<span class="num">' + (i+1) + '</span>' +
+        '<span class="lbl">' + QUESTIONS[i].label + '</span>';
+      b.onclick = () => openQuestion(i);
+      grid.appendChild(b);
+      cellByIndex[i] = b;
+      groupByIndex[i] = group;
+    });
+    group.appendChild(grid);
 
     groupsEl.appendChild(group);
   });
