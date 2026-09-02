@@ -414,6 +414,7 @@ const CATEGORY_VIDEOS = {
   ],
 };
 
+
 const QUESTIONS = [{"q": "心臓や呼吸が止まってしまった状態のことを「心停止」、胸骨圧迫や人工呼吸を行うことを「心肺蘇生」という。", "valid": 1, "c": "心臓や呼吸が止まってしまった状態のことを「心停止」、胸骨圧迫や人工呼吸を行うことを「心肺蘇生」と言います。", "cat": "救命の基礎知識", "label": "心停止と心肺蘇生", "video": "https://youtu.be/Sl7lsKhXIZQ", "stopAfter": 30}
 , {"q": "心肺蘇生は、医師、看護師、救急隊員にしか実施することができない。", "valid": 0, "c": "心肺蘇生は、誰でもできます。皆さんの目の前で倒れた人の心臓や呼吸が止まっている場合は、心肺蘇生を行います。", "cat": "救命の基礎知識", "label": "誰が実施できるか", "video": "https://youtu.be/Sl7lsKhXIZQ"}
 , {"q": "誰かが目の前で倒れた場合、119番通報より先に心肺蘇生を試みる。", "valid": 0, "c": "倒れた人の状態を確認して呼びかけに反応がなければ、まず119番通報をします。", "cat": "応急手当の手順", "label": "119番通報の優先", "video": "https://youtu.be/KQuNbUHR8S4"}
@@ -488,11 +489,27 @@ let examGraded = false;
 const $ = id => document.getElementById(id);
 const groupsEl = $('groups');
 
+// カードの元の位置（修了テスト時はここに戻す）を記憶しておく
+const cardEl = $('card');
+const cardHomeParent = cardEl.parentNode;
+const cardHomeNext = cardEl.nextSibling;
+// 練習モード：クリックした問題のカテゴリ直下にカードを移動
+function placeCardAfterGroup(qIndex){
+  const g = groupByIndex[qIndex];
+  if(g && g.parentNode){ g.parentNode.insertBefore(cardEl, g.nextSibling); }
+}
+// 修了テスト等：カードを元の位置に戻す
+function restoreCardHome(){
+  if(cardHomeNext){ cardHomeParent.insertBefore(cardEl, cardHomeNext); }
+  else { cardHomeParent.appendChild(cardEl); }
+}
+
 // カテゴリごとに配置した動画の wrap 要素を保持（モード切替で再マウント/クリアするため）
 const catVideoWraps = []; // { url, wrap }
 
 // カテゴリごとにグループ化して一覧を生成
 const cellByIndex = new Array(N); // 問題番号 -> セル要素
+const groupByIndex = new Array(N); // 問題番号 -> 所属カテゴリのグループ要素（カード移動用）
 (function buildGroups(){
   CATEGORIES.forEach(cat => {
     // このカテゴリに属する問題（元の番号を保持）
@@ -523,6 +540,7 @@ const cellByIndex = new Array(N); // 問題番号 -> セル要素
       b.onclick = () => openQuestion(i);
       grid.appendChild(b);
       cellByIndex[i] = b;
+      groupByIndex[i] = group;
     });
     group.appendChild(grid);
 
@@ -619,6 +637,8 @@ function openQuestion(pos){
   setActiveCurrent(pos);
   const ri = realIndexOf(pos);
   const q = QUESTIONS[ri];
+  // カードの表示位置を調整（練習モードはクリックした問題のすぐ下、修了テストは元の位置）
+  if(mode === 'exam'){ restoreCardHome(); } else { placeCardAfterGroup(ri); }
   $('card').style.display = 'block';
   if(mode === 'exam'){
     $('qNum').textContent = '第' + (pos+1) + '問 / ' + EXAM_TOTAL;
@@ -658,7 +678,8 @@ function openQuestion(pos){
     destroyPlayer();
     $('videoFrameWrap').innerHTML = ''; // 再生中の動画を停止
   }
-  $('card').scrollIntoView({behavior:'smooth', block:'start'});
+  // クリックした問題のすぐ下に出るので、控えめにスクロールして文脈を保つ
+  $('card').scrollIntoView({behavior:'smooth', block:'nearest'});
 }
 
 function answer(choice){
@@ -895,6 +916,7 @@ function switchMode(next){
   destroyPlayer();
   $('videoFrameWrap').innerHTML = '';
   $('card').style.display = 'none';
+  restoreCardHome(); // 練習モードで移動していたカードを元の位置へ戻す
   $('result').classList.remove('show');
 
   const practice = next === 'practice';
