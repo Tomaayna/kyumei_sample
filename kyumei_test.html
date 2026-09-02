@@ -27,6 +27,7 @@ header{text-align:center;margin-bottom:22px}
 }
 h1{font-size:24px;letter-spacing:.04em;font-weight:800}
 .tagline{font-size:13px;color:var(--sub);margin-top:4px}
+.intro-video{max-width:680px;margin:18px auto 4px}
 
 /* progress bar */
 .progress{
@@ -216,6 +217,11 @@ footer .credit-note{font-size:11px;color:var(--sub);margin-bottom:14px;line-heig
     <p class="tagline" id="tagline">全50問 ／ マル・バツ形式</p>
   </header>
 
+  <div class="intro-video" id="introVideo">
+    <div class="v-title">はじめに（導入動画）</div>
+    <div class="v-frame" id="introFrameWrap"></div>
+  </div>
+
   <div class="modeswitch" role="tablist" aria-label="モード切替">
     <button class="mode-tab active" id="tabPractice" role="tab" aria-selected="true">練習モード</button>
     <button class="mode-tab" id="tabExam" role="tab" aria-selected="false">修了テスト</button>
@@ -383,7 +389,7 @@ const QUESTIONS = [{"q": "心臓や呼吸が止まってしまった状態のこ
 , {"q": "「気道異物の除去」は、口の中やノド等に詰まっている異物を取り除くことである。", "valid": 1, "c": "口の中やノド等に詰まっている異物を取り除く処置を「気道異物の除去」と言い、その処置には「背部叩打法」や「腹部突き上げ法」などがあります。", "cat": "気道異物・窒息", "label": "気道異物の除去とは", "video": "https://youtu.be/MxzeZ1gjQU8&t=84s"}
 , {"q": "目の前で人が倒れたり、倒れている人を見つけた場合、まずは周囲の安全を確認する。", "valid": 1, "c": "周囲が安全であることを確認し、身の周りに危険が無いことを確認してから倒れている人に近づきます。", "cat": "応急手当の手順", "label": "周囲の安全確認", "video": "https://youtu.be/Fw7CcMyoUYA&t=10s","stopAfter": 20}
 , {"q": "倒れている人の反応は、やさしく肩を叩きながら、大きな声で呼びかけて確認します。", "valid": 1, "c": "倒れている人の反応の確認は、肩をやさしく叩きながら、大きな声で「分かりますか」「大丈夫ですか」と呼びかけて確認します。", "cat": "応急手当の手順", "label": "反応の確認", "video": "https://youtu.be/Fw7CcMyoUYA&t=31s"}
-, {"q": "反応がない場合は、ただちに胸骨圧迫を開始する。", "valid": 0, "c": "反応がない場合は、大声で叫んで応援を求め、応援に来てくれた人に119番通報やＡＥＤを持ってくるよう依頼します。", "cat": "応急手当の手順", "label": "応援・通報の依頼", "video": "https://youtu.be/VweOinqtYhg&t=6s"}
+, {"q": "反応がない場合は、ただちに胸骨圧迫を開始する。", "valid": 0, "c": "反応がない場合は、大声で叫んで応援を求め、応援に来てくれた人に119番通報やＡＥＤを持ってくるよう依頼します。", "cat": "応急手当の手順", "label": "応援・通報の依頼", "video": "https://youtu.be/VweOinqtYhg&t=6s","stopAfter": 60}
 , {"q": "傷病者に反応がなく、大声で叫んで助けを求めたところ、誰も来なかった場合は、心肺蘇生を優先する。", "valid": 0, "c": "誰も来なかった場合は、119番通報を優先します。119番通報し、通信指令員の指示に従って落ち着いて行動しましょう。", "cat": "応急手当の手順", "label": "助けが来ない時", "video": "https://youtu.be/VweOinqtYhg&t=66s"}
 , {"q": "普段どおりの呼吸をしているかどうかの確認は、胸やお腹の動きで判断する。", "valid": 1, "c": "呼吸の確認は、胸やお腹が上下しているかをみて、判断します。確認は10秒以内で行い、普段どおりの呼吸がなければ、胸骨圧迫を開始します。判断に迷う場合や、分からない場合も胸骨圧迫を開始します。", "cat": "応急手当の手順", "label": "呼吸の確認", "video": "https://youtu.be/n6PcjHi1MH0&t=5s"}
 , {"q": "心臓が止まった直後には、しゃくりあげるような途切れ途切れの呼吸がみられるが、これは普段どおりの呼吸ではないため、心肺蘇生を開始した。", "valid": 1, "c": "心臓が止まった直後には、しゃくりあげるような途切れ途切れの呼吸になることがありますが、胸やお腹の動きが普段どおりではないため、心停止と判断して胸骨圧迫を開始します。", "cat": "応急手当の手順", "label": "死戦期呼吸の判断", "video": "https://youtu.be/n6PcjHi1MH0&t=75s"}
@@ -627,13 +633,13 @@ function showResult(pos){
   $('answerLine').innerHTML = '正しい答え： <b>' + (correctAnswer ? '○' : '×') + '</b>';
   $('commentaryText').textContent = q.c;
 
-  // 正解・不正解にかかわらず動画を表示
+  // 動画を表示（※修了テストモードでは常に非表示）
   const box = $('videoBox');
   const wrap = $('videoFrameWrap');
   const vid = getVideoId(q.video);
   const start = getStartSeconds(q.video);
   const stopAfter = (typeof q.stopAfter === 'number' && q.stopAfter > 0) ? q.stopAfter : 0;
-  if(vid){
+  if(mode !== 'exam' && vid){
     box.style.display = 'block';
     mountVideo(wrap, vid, start, stopAfter);
   } else {
@@ -822,6 +828,9 @@ function switchMode(next){
   const practice = next === 'practice';
   $('practiceUI').style.display = practice ? 'block' : 'none';
   $('examUI').style.display     = practice ? 'none'  : 'block';
+  // 導入動画は練習モードのみ表示（修了テストでは非表示・再生停止）
+  $('introVideo').style.display = practice ? 'block' : 'none';
+  if(practice){ mountIntroVideo(); } else { $('introFrameWrap').innerHTML = ''; }
   $('tabPractice').classList.toggle('active', practice);
   $('tabExam').classList.toggle('active', !practice);
   $('tabPractice').setAttribute('aria-selected', practice ? 'true':'false');
@@ -1116,6 +1125,16 @@ $('btnIssueCert').onclick = issueCertificate;
 
 refreshGrid();
 updateProgress();
+
+// タイトル下の導入動画（練習モード時のみ表示。サムネイル→クリックで再生、自動停止なし）
+const INTRO_VIDEO_URL = 'https://www.youtube.com/watch?v=xqc-0AErbYE';
+function mountIntroVideo(){
+  const iv = getVideoId(INTRO_VIDEO_URL);
+  const is = getStartSeconds(INTRO_VIDEO_URL);
+  if(iv) mountVideo($('introFrameWrap'), iv, is, 0);
+}
+// 初期表示は練習モードなので導入動画を表示
+mountIntroVideo();
 </script>
 </body>
 </html>
