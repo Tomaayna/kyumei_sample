@@ -50,6 +50,14 @@ h1{font-size:24px;letter-spacing:.04em;font-weight:800}
 .cat-head .cat-count{font-size:11px;font-weight:700;color:var(--sub);
   background:var(--paper);border:1px solid var(--line);border-radius:99px;padding:2px 9px}
 .cat-head .cat-line{flex:1;height:1px;background:var(--line)}
+.cat-video-toggle{flex:none;display:inline-flex;align-items:center;gap:6px;
+  font-size:12px;font-weight:700;color:var(--maru);cursor:pointer;
+  background:var(--maru-bg);border:1px solid var(--maru);border-radius:99px;padding:4px 11px;
+  transition:background .15s,color .15s}
+.cat-video-toggle:hover{background:var(--maru);color:#fff}
+.cat-video-toggle .caret{font-size:9px;transition:transform .2s}
+.cat-video-toggle.open .caret{transform:rotate(180deg)}
+.cat-video-toggle:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 .cat-videos{margin:12px 0 14px}
 .cat-video-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
 @media(max-width:520px){ .cat-video-grid{grid-template-columns:1fr} }
@@ -504,8 +512,8 @@ function restoreCardHome(){
   else { cardHomeParent.appendChild(cardEl); }
 }
 
-// カテゴリごとに配置した動画の wrap 要素を保持（モード切替で再マウント/クリアするため）
-const catVideoWraps = []; // { url, wrap }
+// カテゴリごとの動画パネルを保持（アコーディオン開閉・モード切替のクリア用）
+const catVideoPanels = []; // { toggle, panel, wraps:[{url,wrap}] }
 
 // カテゴリごとにグループ化して一覧を生成
 const cellByIndex = new Array(N); // 問題番号 -> セル要素
@@ -526,23 +534,40 @@ const groupByIndex = new Array(N); // 問題番号 -> 所属カテゴリのグ�
       '<span class="cat-name">' + cat + '</span>' +
       '<span class="cat-count">' + items.length + '問</span>' +
       '<span class="cat-line"></span>';
-    group.appendChild(head);
 
-    // このカテゴリの動画（CATEGORY_VIDEOS）をカテゴリ見出しと問題一覧の間に表示
+    // このカテゴリの動画（CATEGORY_VIDEOS）。あれば「動画を見る」トグルと折りたたみパネルを用意
     const urls = (CATEGORY_VIDEOS[cat] || []).filter(u => u && getVideoId(u));
+    let panel = null;
     if(urls.length){
-      const vbox = document.createElement('div');
-      vbox.className = 'cat-videos';
+      // 見出し右端にトグルボタン
+      const toggle = document.createElement('button');
+      toggle.className = 'cat-video-toggle';
+      toggle.setAttribute('aria-expanded', 'false');
+      toggle.innerHTML = '動画を見る（' + urls.length + '）<span class="caret">▼</span>';
+      head.appendChild(toggle);
+      group.appendChild(head);
+
+      // 折りたたみパネル（初期は非表示）
+      panel = document.createElement('div');
+      panel.className = 'cat-videos';
+      panel.style.display = 'none';
       const vgrid = document.createElement('div');
       vgrid.className = 'cat-video-grid';
+      const wrapsForPanel = [];
       urls.forEach(url => {
         const wrap = document.createElement('div');
         wrap.className = 'v-frame';
         vgrid.appendChild(wrap);
-        catVideoWraps.push({ url: url, wrap: wrap });
+        wrapsForPanel.push({ url: url, wrap: wrap });
       });
-      vbox.appendChild(vgrid);
-      group.appendChild(vbox);
+      panel.appendChild(vgrid);
+      group.appendChild(panel);
+
+      const info = { toggle, panel, wraps: wrapsForPanel };
+      catVideoPanels.push(info);
+      toggle.onclick = () => toggleCatVideos(info);
+    } else {
+      group.appendChild(head);
     }
 
     const grid = document.createElement('div');
@@ -565,16 +590,36 @@ const groupByIndex = new Array(N); // 問題番号 -> 所属カテゴリのグ�
   });
 })();
 
-// カテゴリ動画をサムネイル表示（練習モードのみ）。exam時はクリアして呼ばない。
-function mountCategoryVideos(){
-  catVideoWraps.forEach(({url, wrap}) => {
+// 指定パネルだけを開き、他は閉じる（アコーディオン）。開いたパネルのみサムネイルを生成。
+function openCatPanel(info){
+  catVideoPanels.forEach(p => {
+    if(p === info) return;
+    closeCatPanel(p);
+  });
+  info.panel.style.display = 'block';
+  info.toggle.setAttribute('aria-expanded', 'true');
+  info.toggle.classList.add('open');
+  info.wraps.forEach(({url, wrap}) => {
     const v = getVideoId(url);
     const s = getStartSeconds(url);
     if(v) mountVideo(wrap, v, s, 0);
   });
 }
-function clearCategoryVideos(){
-  catVideoWraps.forEach(({wrap}) => { wrap.innerHTML = ''; });
+// パネルを閉じる（再生停止＆サムネイルもクリア）
+function closeCatPanel(info){
+  info.panel.style.display = 'none';
+  info.toggle.setAttribute('aria-expanded', 'false');
+  info.toggle.classList.remove('open');
+  destroyPlayer(); // 再生中なら停止
+  info.wraps.forEach(({wrap}) => { wrap.innerHTML = ''; });
+}
+function toggleCatVideos(info){
+  const isOpen = info.toggle.getAttribute('aria-expanded') === 'true';
+  if(isOpen) closeCatPanel(info); else openCatPanel(info);
+}
+// すべてのカテゴリ動画パネルを閉じる（初期化・モード切替時）
+function closeAllCatVideos(){
+  catVideoPanels.forEach(p => closeCatPanel(p));
 }
 
 function refreshGrid(){
@@ -924,7 +969,7 @@ function switchMode(next){
   $('examUI').style.display     = practice ? 'none'  : 'block';
   // 導入動画は練習モードのみ表示（修了テストでは非表示・再生停止）
   $('introVideo').style.display = practice ? 'block' : 'none';
-  if(practice){ mountIntroVideo(); mountCategoryVideos(); } else { $('introFrameWrap').innerHTML = ''; $('introFrameWrap2').innerHTML = ''; clearCategoryVideos(); }
+  if(practice){ mountIntroVideo(); closeAllCatVideos(); } else { $('introFrameWrap').innerHTML = ''; $('introFrameWrap2').innerHTML = ''; closeAllCatVideos(); }
   $('tabPractice').classList.toggle('active', practice);
   $('tabExam').classList.toggle('active', !practice);
   $('tabPractice').setAttribute('aria-selected', practice ? 'true':'false');
@@ -1232,9 +1277,9 @@ function mountIntroVideo(){
   mountOneIntro('introFrameWrap',  INTRO_VIDEO_URL);
   mountOneIntro('introFrameWrap2', INTRO_VIDEO_URL2);
 }
-// 初期表示は練習モードなので導入動画・カテゴリ動画を表示
+// 初期表示は練習モード。導入動画は表示、カテゴリ動画は初期は全て閉じておく
 mountIntroVideo();
-mountCategoryVideos();
+closeAllCatVideos();
 </script>
 </body>
 </html>
