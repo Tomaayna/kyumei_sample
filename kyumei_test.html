@@ -50,6 +50,9 @@ h1{font-size:24px;letter-spacing:.04em;font-weight:800}
 .cat-head .cat-count{font-size:11px;font-weight:700;color:var(--sub);
   background:var(--paper);border:1px solid var(--line);border-radius:99px;padding:2px 9px}
 .cat-head .cat-line{flex:1;height:1px;background:var(--line)}
+.cat-videos{margin-top:12px}
+.cat-video-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+@media(max-width:520px){ .cat-video-grid{grid-template-columns:1fr} }
 
 .grid{
   display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));
@@ -380,6 +383,37 @@ function getStartSeconds(url){
 }
 
 const CATEGORIES = ["救命の基礎知識", "応急手当の手順", "胸骨圧迫", "人工呼吸", "AEDの使い方", "気道異物・窒息"];
+
+/* =========================================================
+   カテゴリごとの動画（各カテゴリの問題一覧の下に表示されます）
+   ・ここにYouTubeのリンクを貼るだけでOK（単一でも複数でも可）
+   ・URLは youtu.be / watch?v= / embed のどの形式でもOK
+   ・"&t=10s" のように開始位置を付けてもOK
+   ・動画を出したくないカテゴリは [] （空）のままにしてください
+   ========================================================= */
+const CATEGORY_VIDEOS = {
+  "救命の基礎知識": [
+    // "https://www.youtube.com/watch?v=XXXXXXXXXXX",
+  ],
+  "応急手当の手順": [
+    // "https://www.youtube.com/watch?v=XXXXXXXXXXX",
+    // "https://www.youtube.com/watch?v=YYYYYYYYYYY",
+  ],
+  "胸骨圧迫": [
+    "https://www.youtube.com/watch?v=Frtp1yZktC0"
+  ],
+  "人工呼吸": [
+    "https://www.youtube.com/watch?v=cdO8K9rs4iE"
+  ],
+  "AEDの使い方": [
+  "https://www.youtube.com/watch?v=LIbgZ4WOv7A",
+  ],
+  "気道異物・窒息": [
+    "https://www.youtube.com/watch?v=OKo91r-6nZg",
+    "https://www.youtube.com/watch?v=vxvazNDCa3c"
+  ],
+};
+
 const QUESTIONS = [{"q": "心臓や呼吸が止まってしまった状態のことを「心停止」、胸骨圧迫や人工呼吸を行うことを「心肺蘇生」という。", "valid": 1, "c": "心臓や呼吸が止まってしまった状態のことを「心停止」、胸骨圧迫や人工呼吸を行うことを「心肺蘇生」と言います。", "cat": "救命の基礎知識", "label": "心停止と心肺蘇生", "video": "https://youtu.be/Sl7lsKhXIZQ", "stopAfter": 30}
 , {"q": "心肺蘇生は、医師、看護師、救急隊員にしか実施することができない。", "valid": 0, "c": "心肺蘇生は、誰でもできます。皆さんの目の前で倒れた人の心臓や呼吸が止まっている場合は、心肺蘇生を行います。", "cat": "救命の基礎知識", "label": "誰が実施できるか", "video": "https://youtu.be/Sl7lsKhXIZQ"}
 , {"q": "誰かが目の前で倒れた場合、119番通報より先に心肺蘇生を試みる。", "valid": 0, "c": "倒れた人の状態を確認して呼びかけに反応がなければ、まず119番通報をします。", "cat": "応急手当の手順", "label": "119番通報の優先", "video": "https://youtu.be/KQuNbUHR8S4"}
@@ -454,6 +488,9 @@ let examGraded = false;
 const $ = id => document.getElementById(id);
 const groupsEl = $('groups');
 
+// カテゴリごとに配置した動画の wrap 要素を保持（モード切替で再マウント/クリアするため）
+const catVideoWraps = []; // { url, wrap }
+
 // カテゴリごとにグループ化して一覧を生成
 const cellByIndex = new Array(N); // 問題番号 -> セル要素
 (function buildGroups(){
@@ -488,9 +525,39 @@ const cellByIndex = new Array(N); // 問題番号 -> セル要素
       cellByIndex[i] = b;
     });
     group.appendChild(grid);
+
+    // このカテゴリの動画（CATEGORY_VIDEOS）を一覧の下に表示
+    const urls = (CATEGORY_VIDEOS[cat] || []).filter(u => u && getVideoId(u));
+    if(urls.length){
+      const vbox = document.createElement('div');
+      vbox.className = 'cat-videos';
+      const vgrid = document.createElement('div');
+      vgrid.className = 'cat-video-grid';
+      urls.forEach(url => {
+        const wrap = document.createElement('div');
+        wrap.className = 'v-frame';
+        vgrid.appendChild(wrap);
+        catVideoWraps.push({ url: url, wrap: wrap });
+      });
+      vbox.appendChild(vgrid);
+      group.appendChild(vbox);
+    }
+
     groupsEl.appendChild(group);
   });
 })();
+
+// カテゴリ動画をサムネイル表示（練習モードのみ）。exam時はクリアして呼ばない。
+function mountCategoryVideos(){
+  catVideoWraps.forEach(({url, wrap}) => {
+    const v = getVideoId(url);
+    const s = getStartSeconds(url);
+    if(v) mountVideo(wrap, v, s, 0);
+  });
+}
+function clearCategoryVideos(){
+  catVideoWraps.forEach(({wrap}) => { wrap.innerHTML = ''; });
+}
 
 function refreshGrid(){
   cellByIndex.forEach((c, i) => {
@@ -835,7 +902,7 @@ function switchMode(next){
   $('examUI').style.display     = practice ? 'none'  : 'block';
   // 導入動画は練習モードのみ表示（修了テストでは非表示・再生停止）
   $('introVideo').style.display = practice ? 'block' : 'none';
-  if(practice){ mountIntroVideo(); } else { $('introFrameWrap').innerHTML = ''; $('introFrameWrap2').innerHTML = ''; }
+  if(practice){ mountIntroVideo(); mountCategoryVideos(); } else { $('introFrameWrap').innerHTML = ''; $('introFrameWrap2').innerHTML = ''; clearCategoryVideos(); }
   $('tabPractice').classList.toggle('active', practice);
   $('tabExam').classList.toggle('active', !practice);
   $('tabPractice').setAttribute('aria-selected', practice ? 'true':'false');
@@ -1143,8 +1210,9 @@ function mountIntroVideo(){
   mountOneIntro('introFrameWrap',  INTRO_VIDEO_URL);
   mountOneIntro('introFrameWrap2', INTRO_VIDEO_URL2);
 }
-// 初期表示は練習モードなので導入動画を表示
+// 初期表示は練習モードなので導入動画・カテゴリ動画を表示
 mountIntroVideo();
+mountCategoryVideos();
 </script>
 </body>
 </html>
