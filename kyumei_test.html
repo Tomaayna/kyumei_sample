@@ -28,6 +28,8 @@ header{text-align:center;margin-bottom:22px}
 h1{font-size:24px;letter-spacing:.04em;font-weight:800}
 .tagline{font-size:13px;color:var(--sub);margin-top:4px}
 .intro-video{max-width:680px;margin:18px auto 4px}
+.intro-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:520px){ .intro-grid{grid-template-columns:1fr} }
 
 /* progress bar */
 .progress{
@@ -219,7 +221,10 @@ footer .credit-note{font-size:11px;color:var(--sub);margin-bottom:14px;line-heig
 
   <div class="intro-video" id="introVideo">
     <div class="v-title">はじめに（導入動画）</div>
-    <div class="v-frame" id="introFrameWrap"></div>
+    <div class="intro-grid">
+      <div class="v-frame" id="introFrameWrap"></div>
+      <div class="v-frame" id="introFrameWrap2"></div>
+    </div>
   </div>
 
   <div class="modeswitch" role="tablist" aria-label="モード切替">
@@ -830,7 +835,7 @@ function switchMode(next){
   $('examUI').style.display     = practice ? 'none'  : 'block';
   // 導入動画は練習モードのみ表示（修了テストでは非表示・再生停止）
   $('introVideo').style.display = practice ? 'block' : 'none';
-  if(practice){ mountIntroVideo(); } else { $('introFrameWrap').innerHTML = ''; }
+  if(practice){ mountIntroVideo(); } else { $('introFrameWrap').innerHTML = ''; $('introFrameWrap2').innerHTML = ''; }
   $('tabPractice').classList.toggle('active', practice);
   $('tabExam').classList.toggle('active', !practice);
   $('tabPractice').setAttribute('aria-selected', practice ? 'true':'false');
@@ -1127,11 +1132,16 @@ refreshGrid();
 updateProgress();
 
 // タイトル下の導入動画（練習モード時のみ表示。サムネイル→クリックで再生、自動停止なし）
-const INTRO_VIDEO_URL = 'https://www.youtube.com/watch?v=xqc-0AErbYE';
+const INTRO_VIDEO_URL  = 'https://www.youtube.com/watch?v=xqc-0AErbYE';
+const INTRO_VIDEO_URL2 = 'https://www.youtube.com/watch?v=3W0Bq9fhRoc';
+function mountOneIntro(wrapId, url){
+  const v = getVideoId(url);
+  const s = getStartSeconds(url);
+  if(v) mountVideo($(wrapId), v, s, 0);
+}
 function mountIntroVideo(){
-  const iv = getVideoId(INTRO_VIDEO_URL);
-  const is = getStartSeconds(INTRO_VIDEO_URL);
-  if(iv) mountVideo($('introFrameWrap'), iv, is, 0);
+  mountOneIntro('introFrameWrap',  INTRO_VIDEO_URL);
+  mountOneIntro('introFrameWrap2', INTRO_VIDEO_URL2);
 }
 // 初期表示は練習モードなので導入動画を表示
 mountIntroVideo();
